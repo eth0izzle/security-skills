@@ -1,0 +1,229 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W6: BEC - Identity Response
+# PwC Step 10 (identity) — Revoke sessions, reset passwords, and optionally
+# disable accounts for compromised users via Okta or Entra ID plugins.
+# Template basis: assets/conditional.yaml (skip-group pattern from PHI-010)
+# Plugin actions require PLACEHOLDER_CONFIG_ID — see lookup instructions below.
+
+name: 'BEC - Identity Response'
+description: >-
+  Remediate compromised user identities as part of BEC incident response.
+  Supports both Entra ID and Okta identity providers. Revokes active
+  sessions, forces password reset, and optionally disables the account.
+  Respects the SkipCrowdStrikeWorkflows group exclusion.
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            user_upns:
+                items:
+                    type: string
+                type: array
+                title: User UPNs
+                description: >-
+                  List of compromised user principal names to remediate.
+                minItems: 1
+            revoke_sessions:
+                type: boolean
+                title: Revoke Sessions
+                description: >-
+                  Revoke all active sessions for each user. Defaults to true.
+                default: true
+            force_password_reset:
+                type: boolean
+                title: Force Password Reset
+                description: >-
+                  Force a password reset for each user. Defaults to true.
+                default: true
+            disable_account:
+                type: boolean
+                title: Disable Account
+                description: >-
+                  Disable the user account entirely. Defaults to false.
+                default: false
+            identity_provider:
+                type: string
+                title: Identity Provider
+                description: >-
+                  Which identity provider to use for remediation actions.
+                enum:
+                    - entra_id
+                    - okta
+                default: entra_id
+            case_id:
+                type: string
+                title: Case ID
+                description: Optional BEC case ID for tracking.
+        required:
+            - user_upns
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each User UPNs; Sequentially
+        name: For each User UPNs; Sequentially
+        for:
+            input: user_upns
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - GetUserIdentityContext
+                properties:
+                    variable_schema:
+                        properties:
+                            user_upn:
+                                type: string
+                            sessions_revoked:
+                                type: boolean
+                            password_reset:
+                                type: boolean
+                            account_disabled:
+                                type: boolean
+                        required:
+                            - user_upn
+                            - sessions_revoked
+                            - password_reset
+                            - account_disabled
+                        type: object
+                version_constraint: ~1
+            GetUserIdentityContext:
+                # PLACEHOLDER_IDENTITY_LOOKUP_ID — run: action_search.py --search "identity" --vendor "CrowdStrike"
+                # Retrieves user identity context including group memberships
+                # for skip-group evaluation.
+                id: PLACEHOLDER_IDENTITY_LOOKUP_ID
+                name: Get user identity context
+                next:
+                    - check_skip_group
+                properties:
+                    user: ${data['user_upns.#']}
+                version_constraint: ~1
+            # ── Entra ID branch ──────────────────────────────────────────
+            EntraRevokeSessions:
+                # PLACEHOLDER_ENTRA_REVOKE_ID — run: action_search.py --vendor "Microsoft" --search "revoke"
+                # Plugin: Microsoft Entra ID — Revoke user sessions
+                id: PLACEHOLDER_ENTRA_REVOKE_ID
+                name: Microsoft Entra ID - Revoke sessions
+                next:
+                    - EntraPasswordReset
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console → CrowdStrike Store → Microsoft Entra ID → Integration settings
+                    params:
+                        path:
+                            user_id: ${data['user_upns.#']}
+            EntraPasswordReset:
+                # PLACEHOLDER_ENTRA_PASSWORD_ID — run: action_search.py --vendor "Microsoft" --search "password"
+                # Plugin: Microsoft Entra ID — Force password reset
+                id: PLACEHOLDER_ENTRA_PASSWORD_ID
+                name: Microsoft Entra ID - Reset password
+                next:
+                    - UpdateVariableEntra
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    params:
+                        path:
+                            user_id: ${data['user_upns.#']}
+            UpdateVariableEntra:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - Entra ID
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        sessions_revoked: true
+                        password_reset: true
+                        account_disabled: false
+                version_constraint: ~1
+            # ── Okta branch ──────────────────────────────────────────────
+            OktaRevokeSessions:
+                # PLACEHOLDER_OKTA_REVOKE_ID — run: action_search.py --vendor "Okta" --search "revoke"
+                # Plugin: Okta — Revoke user sessions
+                id: PLACEHOLDER_OKTA_REVOKE_ID
+                name: Okta - Revoke Sessions
+                next:
+                    - OktaPasswordReset
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console → CrowdStrike Store → Okta → Integration settings
+                    params:
+                        path:
+                            Okta User ID: ${data['GetUserIdentityContext.UserOktaObjectID']}
+                        query:
+                            oauthTokens: true
+            OktaPasswordReset:
+                # PLACEHOLDER_OKTA_PASSWORD_ID — run: action_search.py --vendor "Okta" --search "password"
+                # Plugin: Okta — Expire/reset password
+                id: PLACEHOLDER_OKTA_PASSWORD_ID
+                name: Okta - Expire Password
+                next:
+                    - UpdateVariableOkta
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    params:
+                        path:
+                            Okta User ID: ${data['GetUserIdentityContext.UserOktaObjectID']}
+            UpdateVariableOkta:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - Okta
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        sessions_revoked: true
+                        password_reset: true
+                        account_disabled: false
+                version_constraint: ~1
+            # ── Skipped branch ───────────────────────────────────────────
+            UpdateVariableSkipped:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - skipped
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        sessions_revoked: false
+                        password_reset: false
+                        account_disabled: false
+                version_constraint: ~1
+        conditions:
+            # Skip-group check: skip remediation for users in SkipCrowdStrikeWorkflows group.
+            # Uses FQL-style expression (supports else branch).
+            check_skip_group:
+                next:
+                    - check_provider
+                expression: GetUserIdentityContext.Groups:!['SkipCrowdStrikeWorkflows']
+                display:
+                    - User groups does not include SkipCrowdStrikeWorkflows
+                else:
+                    - UpdateVariableSkipped
+            # Provider routing: Entra ID vs Okta (CEL expression, no else).
+            check_provider:
+                next:
+                    - EntraRevokeSessions
+                cel_expression: data['identity_provider'] == 'entra_id'
+                display:
+                    - Identity provider is Entra ID
+            check_provider_okta:
+                next:
+                    - OktaRevokeSessions
+                cel_expression: data['identity_provider'] == 'okta'
+                display:
+                    - Identity provider is Okta
+        output_fields:
+            - WorkflowCustomVariable.user_upn
+            - WorkflowCustomVariable.sessions_revoked
+            - WorkflowCustomVariable.password_reset
+            - WorkflowCustomVariable.account_disabled
+output_fields:
+    - Loop.output

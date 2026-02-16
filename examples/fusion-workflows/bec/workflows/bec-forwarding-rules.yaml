@@ -1,0 +1,185 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W3: BEC - Forwarding Rule Audit
+# PwC Step 3 — Audit mailbox forwarding rules and transport rule changes via
+# Microsoft Graph API. Flags rules that forward externally or target suspicious
+# folders/keywords.
+# Template basis: assets/conditional.yaml
+# Requires Azure AD app with MailboxSettings.Read permission.
+
+name: 'BEC - Forwarding Rule Audit'
+description: >-
+  For each compromised user UPN, query Microsoft Graph for inbox rules and
+  mailbox settings. Flags rules that forward to external addresses, target
+  suspicious folders (RSS, Archive, Junk), or contain BEC keywords
+  (payment, invoice, wire, bank).
+trigger:
+    next:
+        - GetGraphToken
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            user_upns:
+                items:
+                    type: string
+                type: array
+                title: User UPNs
+                description: >-
+                  List of user principal names to audit for suspicious
+                  forwarding rules.
+                minItems: 1
+            tenant_id:
+                type: string
+                title: Azure AD Tenant ID
+                description: Azure AD tenant ID for Graph API authentication.
+            client_id:
+                type: string
+                title: Azure AD Client ID
+                description: Azure AD app registration client ID.
+            client_secret:
+                type: string
+                title: Azure AD Client Secret
+                description: Azure AD app registration client secret.
+            external_domains_watchlist:
+                type: string
+                title: External Domains Watchlist
+                description: >-
+                  Optional comma-separated list of suspicious external
+                  domains to flag (e.g. attacker.com,evil.net).
+        required:
+            - user_upns
+            - tenant_id
+            - client_id
+            - client_secret
+        type: object
+    type: On demand
+actions:
+    GetGraphToken:
+        # HTTP action to acquire OAuth2 token from Azure AD
+        # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+        id: PLACEHOLDER_HTTP_ACTION_ID
+        name: HTTP request
+        next:
+            - Loop
+        properties:
+            url: https://login.microsoftonline.com/${data['tenant_id']}/oauth2/v2.0/token
+            method: POST
+            headers:
+                Content-Type: application/x-www-form-urlencoded
+            body: >-
+              grant_type=client_credentials&client_id=${data['client_id']}&client_secret=${data['client_secret']}&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default
+        version_constraint: ~1
+loops:
+    Loop:
+        display: For each User UPNs; Sequentially
+        name: For each User UPNs; Sequentially
+        for:
+            input: user_upns
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - QueryInboxRules
+                properties:
+                    variable_schema:
+                        properties:
+                            user_upn:
+                                type: string
+                            rules_found:
+                                type: integer
+                            suspicious_rules:
+                                type: integer
+                            rule_details:
+                                type: string
+                        required:
+                            - user_upn
+                            - rules_found
+                            - suspicious_rules
+                        type: object
+                version_constraint: ~1
+            QueryInboxRules:
+                # HTTP GET to Graph API inbox message rules.
+                # Detection logic (PwC Step 3):
+                #   - Rules forwarding to external addresses (ForwardTo, BlindCopyTo, RedirectTo)
+                #   - Rules targeting suspicious folders: RSS, Archive, Junk Email, Conversation History
+                #   - Rules with BEC keywords: payment, invoice, wire, bank
+                #   - Transport rule modifications (New-TransportRule, Set-TransportRule)
+                # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+                id: PLACEHOLDER_HTTP_ACTION_ID
+                name: HTTP request
+                next:
+                    - QueryMailboxSettings
+                properties:
+                    url: >-
+                      https://graph.microsoft.com/v1.0/users/${data['user_upns.#']}/mailFolders/inbox/messageRules
+                    method: GET
+                    headers:
+                        Authorization: Bearer ${data['GetGraphToken.access_token']}
+                        Content-Type: application/json
+                version_constraint: ~1
+            QueryMailboxSettings:
+                # HTTP GET to Graph API mailbox settings for ForwardingSmtpAddress.
+                # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+                id: PLACEHOLDER_HTTP_ACTION_ID
+                name: HTTP request
+                next:
+                    - check_external_forwarding
+                properties:
+                    url: >-
+                      https://graph.microsoft.com/v1.0/users/${data['user_upns.#']}/mailboxSettings
+                    method: GET
+                    headers:
+                        Authorization: Bearer ${data['GetGraphToken.access_token']}
+                        Content-Type: application/json
+                version_constraint: ~1
+            UpdateVariableSuspicious:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - suspicious
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        rules_found: ${data['QueryInboxRules.body']}
+                        suspicious_rules: 1
+                        rule_details: ${data['QueryInboxRules.body']}
+                version_constraint: ~1
+            UpdateVariableClean:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - clean
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        rules_found: ${data['QueryInboxRules.body']}
+                        suspicious_rules: 0
+                        rule_details: "No suspicious forwarding rules detected."
+                version_constraint: ~1
+        conditions:
+            # Check if any inbox rule forwards to an external address.
+            # This is a simplified check — in practice, parse the JSON response
+            # to look for ForwardTo, BlindCopyTo, RedirectTo actions pointing
+            # to external domains, or for suspicious folder targets.
+            check_external_forwarding:
+                next:
+                    - UpdateVariableSuspicious
+                cel_expression: >-
+                  data['QueryInboxRules.status_code'] == 200
+                  && size(data['QueryInboxRules.body']) > 0
+                display:
+                    - Inbox rules found for user
+                else:
+                    - UpdateVariableClean
+        output_fields:
+            - WorkflowCustomVariable.user_upn
+            - WorkflowCustomVariable.rules_found
+            - WorkflowCustomVariable.suspicious_rules
+            - WorkflowCustomVariable.rule_details
+output_fields:
+    - Loop.output

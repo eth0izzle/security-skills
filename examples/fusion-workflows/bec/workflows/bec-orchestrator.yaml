@@ -1,0 +1,274 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W8: BEC - Investigation Orchestrator
+# Orchestrates all BEC sub-workflows (W1-W7) in sequence.
+# Investigation workflows (W1-W4) always run. Response workflows (W5-W7)
+# are gated by parameters so the analyst must opt-in to remediation.
+# Template basis: Custom sequential chain (no template match)
+
+name: 'BEC - Investigation Orchestrator'
+description: >-
+  Master orchestrator for BEC investigations. Executes all investigation
+  workflows (Kickoff, Login Analysis, Forwarding Rules, Permission Review)
+  automatically. Response workflows (IOC Blocking, Identity Response,
+  Endpoint Containment) only run when explicitly enabled via parameters.
+trigger:
+    next:
+        - ExecuteKickoff
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            # ── Case parameters (shared with W1) ──
+            case_id:
+                type: string
+                title: Case ID
+                description: Unique identifier for this BEC investigation case.
+            compromised_users:
+                items:
+                    type: string
+                type: array
+                title: Compromised Users
+                description: >-
+                  List of compromised user UPNs to investigate.
+                minItems: 1
+            incident_date:
+                type: string
+                title: Incident Date
+                description: Date the incident was discovered (yyyy-MM-dd).
+            incident_summary:
+                type: string
+                title: Incident Summary
+                description: Brief description of the suspected BEC incident.
+            priority:
+                type: string
+                title: Priority
+                description: Investigation priority level.
+                enum:
+                    - Critical
+                    - High
+                    - Medium
+                    - Low
+            # ── Graph API credentials (shared with W2-W4) ──
+            tenant_id:
+                type: string
+                title: Azure AD Tenant ID
+                description: Azure AD tenant ID for Graph API authentication.
+            client_id:
+                type: string
+                title: Azure AD Client ID
+                description: Azure AD app registration client ID.
+            client_secret:
+                type: string
+                title: Azure AD Client Secret
+                description: Azure AD app registration client secret.
+            # ── Response workflow parameters ──
+            iocs:
+                items:
+                    properties:
+                        ioc_type:
+                            type: string
+                            enum:
+                                - ip
+                                - domain
+                                - sha256
+                                - md5
+                        ioc_value:
+                            type: string
+                    required:
+                        - ioc_type
+                        - ioc_value
+                    type: object
+                type: array
+                title: IOCs
+                description: >-
+                  Optional list of IOCs to enrich and block. Each item must
+                  include ioc_type and ioc_value.
+            auto_block_iocs:
+                type: boolean
+                title: Auto Block IOCs
+                description: >-
+                  If true, automatically block IOCs after enrichment.
+                  Defaults to false.
+                default: false
+            auto_remediate_identity:
+                type: boolean
+                title: Auto Remediate Identity
+                description: >-
+                  If true, automatically revoke sessions and reset passwords
+                  for compromised users. Defaults to false.
+                default: false
+            device_ids_to_contain:
+                items:
+                    type: string
+                type: array
+                title: Device IDs to Contain
+                description: >-
+                  Optional list of CrowdStrike device IDs to network-contain.
+            identity_provider:
+                type: string
+                title: Identity Provider
+                description: >-
+                  Which identity provider to use for identity response.
+                enum:
+                    - entra_id
+                    - okta
+                default: entra_id
+        required:
+            - case_id
+            - compromised_users
+            - incident_date
+            - incident_summary
+            - tenant_id
+            - client_id
+            - client_secret
+        type: object
+    type: On demand
+actions:
+    # ── Investigation workflows (always run) ─────────────────────────
+    ExecuteKickoff:
+        # Execute W1: BEC - Investigation Kickoff
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - ExecuteLoginAnalysis
+        properties:
+            workflow_name: BEC - Investigation Kickoff
+            parameters:
+                case_id: ${data['case_id']}
+                compromised_users: ${data['compromised_users']}
+                incident_date: ${data['incident_date']}
+                incident_summary: ${data['incident_summary']}
+                priority: ${data['priority']}
+    ExecuteLoginAnalysis:
+        # Execute W2: BEC - Suspicious Login Analysis
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - ExecuteForwardingRules
+        properties:
+            workflow_name: BEC - Suspicious Login Analysis
+            parameters:
+                user_upns: ${data['compromised_users']}
+                tenant_id: ${data['tenant_id']}
+                client_id: ${data['client_id']}
+                client_secret: ${data['client_secret']}
+    ExecuteForwardingRules:
+        # Execute W3: BEC - Forwarding Rule Audit
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - ExecutePermissionOAuth
+        properties:
+            workflow_name: BEC - Forwarding Rule Audit
+            parameters:
+                user_upns: ${data['compromised_users']}
+                tenant_id: ${data['tenant_id']}
+                client_id: ${data['client_id']}
+                client_secret: ${data['client_secret']}
+    ExecutePermissionOAuth:
+        # Execute W4: BEC - Permission and OAuth Review
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - check_iocs
+            - check_remediate
+            - check_containment
+        properties:
+            workflow_name: BEC - Permission and OAuth Review
+            parameters:
+                user_upns: ${data['compromised_users']}
+                tenant_id: ${data['tenant_id']}
+                client_id: ${data['client_id']}
+                client_secret: ${data['client_secret']}
+    # ── Response workflows (gated by parameters) ─────────────────────
+    ExecuteIOCEnrichment:
+        # Execute W5: BEC - IOC Enrichment and Blocking
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: BEC - IOC Enrichment and Blocking
+            parameters:
+                iocs: ${data['iocs']}
+                auto_block: ${data['auto_block_iocs']}
+                case_id: ${data['case_id']}
+    ExecuteIdentityResponse:
+        # Execute W6: BEC - Identity Response
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: BEC - Identity Response
+            parameters:
+                user_upns: ${data['compromised_users']}
+                identity_provider: ${data['identity_provider']}
+                case_id: ${data['case_id']}
+    ExecuteContainment:
+        # Execute W7: BEC - Endpoint Containment
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: BEC - Endpoint Containment
+            parameters:
+                device_ids: ${data['device_ids_to_contain']}
+                containment_note: "BEC Case ${data['case_id']} - automated containment"
+                case_id: ${data['case_id']}
+    PrintSummary:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        properties:
+            data: >-
+              ===== BEC INVESTIGATION COMPLETE =====
+
+              Case ID: ${data['case_id']}
+
+              Investigation workflows executed:
+                - W1: Investigation Kickoff .......... DONE
+                - W2: Suspicious Login Analysis ...... DONE
+                - W3: Forwarding Rule Audit .......... DONE
+                - W4: Permission and OAuth Review .... DONE
+
+              Response workflows (if enabled):
+                - W5: IOC Enrichment and Blocking
+                - W6: Identity Response
+                - W7: Endpoint Containment
+
+              Review individual workflow results in the
+              Falcon console under Workflow Executions.
+
+              ======================================
+conditions:
+    # Gate W5: only run if IOCs were provided
+    check_iocs:
+        next:
+            - ExecuteIOCEnrichment
+        cel_expression: has(data['iocs']) && size(data['iocs']) > 0
+        display:
+            - IOCs provided for enrichment
+    # Gate W6: only run if auto-remediation is enabled
+    check_remediate:
+        next:
+            - ExecuteIdentityResponse
+        cel_expression: data['auto_remediate_identity'] == true
+        display:
+            - Auto remediate identity is enabled
+    # Gate W7: only run if device IDs were provided
+    check_containment:
+        next:
+            - ExecuteContainment
+        cel_expression: has(data['device_ids_to_contain']) && size(data['device_ids_to_contain']) > 0
+        display:
+            - Device IDs provided for containment
+output_fields:
+    - PrintSummary.output

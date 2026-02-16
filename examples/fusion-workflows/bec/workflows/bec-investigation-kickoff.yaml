@@ -1,0 +1,121 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W1: BEC Investigation Kickoff
+# PwC Step 1 — Initialize case, print checklist, enumerate compromised users.
+# Template basis: assets/single-action.yaml (extended to chain Print data actions)
+
+name: 'BEC - Investigation Kickoff'
+description: >-
+  Initialize a BEC investigation case. Prints the case header, PwC 10-step
+  checklist with automation status, and the list of compromised user UPNs
+  for downstream workflows.
+trigger:
+    next:
+        - PrintCaseHeader
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            case_id:
+                type: string
+                title: Case ID
+                description: Unique identifier for this BEC investigation case.
+            compromised_users:
+                items:
+                    type: string
+                type: array
+                title: Compromised Users
+                description: >-
+                  List of compromised user UPNs (e.g. user@contoso.com) to
+                  investigate.
+                minItems: 1
+            incident_date:
+                type: string
+                title: Incident Date
+                description: Date the incident was discovered (yyyy-MM-dd).
+            incident_summary:
+                type: string
+                title: Incident Summary
+                description: Brief description of the suspected BEC incident.
+            priority:
+                type: string
+                title: Priority
+                description: Investigation priority level.
+                enum:
+                    - Critical
+                    - High
+                    - Medium
+                    - Low
+        required:
+            - case_id
+            - compromised_users
+            - incident_date
+            - incident_summary
+        type: object
+    type: On demand
+actions:
+    PrintCaseHeader:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        next:
+            - PrintChecklist
+        properties:
+            data: >-
+              ===== BEC INVESTIGATION CASE =====
+
+              Case ID:          ${data['case_id']}
+
+              Incident Date:    ${data['incident_date']}
+
+              Priority:         ${data['priority']}
+
+              Summary:          ${data['incident_summary']}
+
+              Compromised Users: ${data['compromised_users']}
+
+              ==================================
+    PrintChecklist:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        next:
+            - PrintUserList
+        properties:
+            data: >-
+              ===== PwC 10-STEP BEC CHECKLIST =====
+
+              Step 1:  Identify compromised accounts ............. [Automated via CrowdStrike Fusion]
+
+              Step 2:  Collect evidence / preserve mailbox ....... [Partially automated via Graph API HTTP actions]
+
+              Step 3:  Review mail-flow rules .................... [Automated via CrowdStrike Fusion]
+
+              Step 4:  Review sign-in activity ................... [Automated via CrowdStrike Fusion]
+
+              Step 5:  Review OAuth / app permissions ............ [Automated via CrowdStrike Fusion]
+
+              Step 6:  Review directory role changes ............. [Automated via CrowdStrike Fusion]
+
+              Step 7:  Review email content / exfiltration ....... [Partially automated via Graph API HTTP actions]
+
+              Step 8:  Review lateral movement ................... [Partially automated via Graph API HTTP actions]
+
+              Step 9:  Enrich and block IOCs ..................... [Automated via CrowdStrike Fusion]
+
+              Step 10: Remediate identity and endpoints .......... [Automated via CrowdStrike Fusion]
+
+              ========================================
+    PrintUserList:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        properties:
+            data: >-
+              ===== COMPROMISED USER UPNs =====
+
+              The following users will be investigated by downstream workflows:
+
+              ${data['compromised_users']}
+
+              Total users: Use W2-W4 workflows with these UPNs.
+
+              ================================
+output_fields:
+    - PrintCaseHeader.output

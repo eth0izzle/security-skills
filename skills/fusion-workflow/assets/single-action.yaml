@@ -1,0 +1,27 @@
+# Template: Single action workflow (trigger → action → output)
+# Replace all PLACEHOLDER_ values before importing.
+
+name: 'PLACEHOLDER_WORKFLOW_NAME'
+description: PLACEHOLDER_WORKFLOW_DESCRIPTION
+trigger:
+    next:
+        - PLACEHOLDER_ACTION_LABEL
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            PLACEHOLDER_PARAM_1:
+                type: string
+                title: PLACEHOLDER_PARAM_1_TITLE
+                description: PLACEHOLDER_PARAM_1_DESCRIPTION
+        required:
+            - PLACEHOLDER_PARAM_1
+        type: object
+    type: On demand
+actions:
+    PLACEHOLDER_ACTION_LABEL:
+        id: PLACEHOLDER_ACTION_ID
+        name: PLACEHOLDER_ACTION_DISPLAY_NAME
+        properties:
+            PLACEHOLDER_INPUT_FIELD: ${data['PLACEHOLDER_PARAM_1']}
+output_fields: []

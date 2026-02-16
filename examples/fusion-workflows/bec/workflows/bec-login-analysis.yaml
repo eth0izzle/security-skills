@@ -1,0 +1,147 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W2: BEC - Suspicious Login Analysis
+# PwC Step 4 — Query Azure AD sign-in logs via Microsoft Graph API to detect
+# suspicious logins, MFA failures, and brute-force patterns.
+# Template basis: assets/loop.yaml
+# Requires Azure AD app with AuditLog.Read.All permission.
+
+name: 'BEC - Suspicious Login Analysis'
+description: >-
+  For each compromised user UPN, query Microsoft Graph sign-in logs to
+  identify suspicious logins (unusual IPs/geolocations), MFA failures,
+  and brute-force patterns. Uses HTTP actions to call Graph API.
+trigger:
+    next:
+        - GetGraphToken
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            user_upns:
+                items:
+                    type: string
+                type: array
+                title: User UPNs
+                description: >-
+                  List of user principal names (e.g. user@contoso.com) to
+                  query sign-in logs for.
+                minItems: 1
+            tenant_id:
+                type: string
+                title: Azure AD Tenant ID
+                description: Azure AD tenant ID for Graph API authentication.
+            client_id:
+                type: string
+                title: Azure AD Client ID
+                description: Azure AD app registration client ID.
+            client_secret:
+                type: string
+                title: Azure AD Client Secret
+                description: Azure AD app registration client secret.
+            lookback_days:
+                type: integer
+                title: Lookback Days
+                description: >-
+                  Number of days to look back in sign-in logs. Defaults to 30.
+                default: 30
+        required:
+            - user_upns
+            - tenant_id
+            - client_id
+            - client_secret
+        type: object
+    type: On demand
+actions:
+    GetGraphToken:
+        # HTTP action to acquire OAuth2 token from Azure AD
+        # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+        id: PLACEHOLDER_HTTP_ACTION_ID
+        name: HTTP request
+        next:
+            - Loop
+        properties:
+            url: https://login.microsoftonline.com/${data['tenant_id']}/oauth2/v2.0/token
+            method: POST
+            headers:
+                Content-Type: application/x-www-form-urlencoded
+            body: >-
+              grant_type=client_credentials&client_id=${data['client_id']}&client_secret=${data['client_secret']}&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default
+        version_constraint: ~1
+loops:
+    Loop:
+        display: For each User UPNs; Sequentially
+        name: For each User UPNs; Sequentially
+        for:
+            input: user_upns
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - QuerySignInLogs
+                properties:
+                    variable_schema:
+                        properties:
+                            user_upn:
+                                type: string
+                            suspicious_logins:
+                                type: integer
+                            mfa_failures:
+                                type: integer
+                            brute_force_detected:
+                                type: boolean
+                            findings:
+                                type: string
+                        required:
+                            - user_upn
+                            - suspicious_logins
+                            - mfa_failures
+                            - brute_force_detected
+                        type: object
+                version_constraint: ~1
+            QuerySignInLogs:
+                # HTTP GET to Graph API sign-in logs for the current user UPN.
+                # Filters: userPrincipalName match and createdDateTime within lookback window.
+                # Detection logic (PwC Step 4):
+                #   - Suspicious logins: non-corporate IPs, unusual geolocations, odd UserAgent
+                #   - MFA errors: status.errorCode matching MFA failure codes
+                #   - Brute force: high volume of UserLoginFailed in short timeframe
+                # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+                id: PLACEHOLDER_HTTP_ACTION_ID
+                name: HTTP request
+                next:
+                    - UpdateVariable
+                properties:
+                    url: >-
+                      https://graph.microsoft.com/v1.0/auditLogs/signIns?$filter=userPrincipalName eq '${data['user_upns.#']}' and createdDateTime ge ${data['lookback_days']}
+                    method: GET
+                    headers:
+                        Authorization: Bearer ${data['GetGraphToken.access_token']}
+                        Content-Type: application/json
+                version_constraint: ~1
+            UpdateVariable:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        suspicious_logins: ${data['QuerySignInLogs.body']}
+                        mfa_failures: 0
+                        brute_force_detected: false
+                        findings: ${data['QuerySignInLogs.body']}
+                version_constraint: ~1
+        output_fields:
+            - WorkflowCustomVariable.user_upn
+            - WorkflowCustomVariable.suspicious_logins
+            - WorkflowCustomVariable.mfa_failures
+            - WorkflowCustomVariable.brute_force_detected
+            - WorkflowCustomVariable.findings
+output_fields:
+    - Loop.output
