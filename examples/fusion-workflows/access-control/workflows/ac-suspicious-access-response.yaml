@@ -1,0 +1,281 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W5: Access Control - Suspicious Access Response
+# Template basis: assets/loop-conditional.yaml (action-type routing like BEC W5)
+# NIST AC-2, AC-6, IA-5 — Execute remediation actions for suspicious access:
+# disable accounts, revoke sessions, force MFA reset, remove roles, or reset
+# passwords. Supports dry-run mode for safe pre-execution review.
+# Plugin actions require PLACEHOLDER_CONFIG_ID — see lookup instructions below.
+
+name: 'Access Control - Suspicious Access Response'
+description: >-
+  Execute remediation actions against user accounts flagged by upstream
+  access control workflows. Supports disable_account, revoke_sessions,
+  force_mfa_reset, remove_role, and password_reset actions. Dry-run mode
+  logs planned actions without executing. Routes each action to the
+  appropriate Entra ID plugin endpoint.
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            response_actions:
+                items:
+                    properties:
+                        user_upn:
+                            type: string
+                            title: User UPN
+                            description: User principal name to remediate.
+                        action_type:
+                            type: string
+                            title: Action Type
+                            description: Type of remediation action to execute.
+                            enum:
+                                - disable_account
+                                - revoke_sessions
+                                - force_mfa_reset
+                                - remove_role
+                                - password_reset
+                        role_to_remove:
+                            type: string
+                            title: Role to Remove
+                            description: >-
+                              Role ID to remove (only required for remove_role action).
+                    required:
+                        - user_upn
+                        - action_type
+                    type: object
+                type: array
+                title: Response Actions
+                description: >-
+                  List of remediation actions to execute. Each item must include
+                  user_upn and action_type.
+                minItems: 1
+            identity_provider:
+                type: string
+                title: Identity Provider
+                description: >-
+                  Which identity provider to use for remediation actions.
+                enum:
+                    - entra_id
+                    - okta
+                default: entra_id
+            dry_run:
+                type: boolean
+                title: Dry Run
+                description: >-
+                  If true, log planned actions without executing.
+                  Defaults to true for safety.
+                default: true
+            case_id:
+                type: string
+                title: Case ID
+                description: Optional case ID for tracking and audit trail.
+        required:
+            - response_actions
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each Response Actions; Sequentially
+        name: For each Response Actions; Sequentially
+        for:
+            input: response_actions
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - is_dry_run
+                properties:
+                    variable_schema:
+                        properties:
+                            user_upn:
+                                type: string
+                            action_type:
+                                type: string
+                            action_executed:
+                                type: boolean
+                            dry_run:
+                                type: boolean
+                            result:
+                                type: string
+                        required:
+                            - user_upn
+                            - action_type
+                            - action_executed
+                            - dry_run
+                        type: object
+                version_constraint: ~1
+            # ── Dry-run branch (log only, skip execution) ────────────────
+            UpdateVariableDryRun:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - dry run
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['response_actions.#.user_upn']}
+                        action_type: ${data['response_actions.#.action_type']}
+                        action_executed: false
+                        dry_run: true
+                        result: >-
+                          DRY RUN - Would execute ${data['response_actions.#.action_type']}
+                          on ${data['response_actions.#.user_upn']}
+                version_constraint: ~1
+            # ── Disable Account branch ───────────────────────────────────
+            DisableAccount:
+                # PLACEHOLDER_ENTRA_DISABLE_ID — run: action_search.py --vendor "Microsoft" --search "disable"
+                # Plugin: Microsoft Entra ID — Disable user account
+                id: PLACEHOLDER_ENTRA_DISABLE_ID
+                name: Microsoft Entra ID - Disable account
+                next:
+                    - UpdateVariableDisable
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console -> CrowdStrike Store -> Microsoft Entra ID -> Integration settings
+                    params:
+                        path:
+                            user_id: ${data['response_actions.#.user_upn']}
+            UpdateVariableDisable:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - disable
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['response_actions.#.user_upn']}
+                        action_type: disable_account
+                        action_executed: true
+                        dry_run: false
+                        result: Account disabled successfully
+                version_constraint: ~1
+            # ── Revoke Sessions branch ───────────────────────────────────
+            RevokeSessions:
+                # PLACEHOLDER_ENTRA_REVOKE_ID — run: action_search.py --vendor "Microsoft" --search "revoke"
+                # Plugin: Microsoft Entra ID — Revoke user sessions
+                id: PLACEHOLDER_ENTRA_REVOKE_ID
+                name: Microsoft Entra ID - Revoke sessions
+                next:
+                    - UpdateVariableRevoke
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console -> CrowdStrike Store -> Microsoft Entra ID -> Integration settings
+                    params:
+                        path:
+                            user_id: ${data['response_actions.#.user_upn']}
+            UpdateVariableRevoke:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - revoke
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['response_actions.#.user_upn']}
+                        action_type: revoke_sessions
+                        action_executed: true
+                        dry_run: false
+                        result: Sessions revoked successfully
+                version_constraint: ~1
+            # ── Force MFA Reset branch ───────────────────────────────────
+            ForceMFAReset:
+                # PLACEHOLDER_ENTRA_MFA_RESET_ID — run: action_search.py --vendor "Microsoft" --search "mfa"
+                # Plugin: Microsoft Entra ID — Force MFA re-registration
+                id: PLACEHOLDER_ENTRA_MFA_RESET_ID
+                name: Microsoft Entra ID - Force MFA reset
+                next:
+                    - UpdateVariableMFA
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console -> CrowdStrike Store -> Microsoft Entra ID -> Integration settings
+                    params:
+                        path:
+                            user_id: ${data['response_actions.#.user_upn']}
+            UpdateVariableMFA:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - mfa reset
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['response_actions.#.user_upn']}
+                        action_type: force_mfa_reset
+                        action_executed: true
+                        dry_run: false
+                        result: MFA reset forced successfully
+                version_constraint: ~1
+            # ── Password Reset branch ────────────────────────────────────
+            PasswordReset:
+                # PLACEHOLDER_ENTRA_PASSWORD_ID — run: action_search.py --vendor "Microsoft" --search "password"
+                # Plugin: Microsoft Entra ID — Force password reset
+                id: PLACEHOLDER_ENTRA_PASSWORD_ID
+                name: Microsoft Entra ID - Reset password
+                next:
+                    - UpdateVariablePassword
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console -> CrowdStrike Store -> Microsoft Entra ID -> Integration settings
+                    params:
+                        path:
+                            user_id: ${data['response_actions.#.user_upn']}
+            UpdateVariablePassword:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - password reset
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['response_actions.#.user_upn']}
+                        action_type: password_reset
+                        action_executed: true
+                        dry_run: false
+                        result: Password reset forced successfully
+                version_constraint: ~1
+        conditions:
+            # Gate: dry-run check — if true, skip all execution and just log
+            is_dry_run:
+                next:
+                    - UpdateVariableDryRun
+                cel_expression: data['dry_run'] == true
+                display:
+                    - Dry run mode is enabled
+                else:
+                    - is_disable
+                    - is_revoke
+                    - is_mfa_reset
+                    - is_password_reset
+            # Action-type routing (only reached when dry_run == false)
+            is_disable:
+                next:
+                    - DisableAccount
+                cel_expression: data['response_actions.#.action_type'] == 'disable_account'
+                display:
+                    - Action type is disable_account
+            is_revoke:
+                next:
+                    - RevokeSessions
+                cel_expression: data['response_actions.#.action_type'] == 'revoke_sessions'
+                display:
+                    - Action type is revoke_sessions
+            is_mfa_reset:
+                next:
+                    - ForceMFAReset
+                cel_expression: data['response_actions.#.action_type'] == 'force_mfa_reset'
+                display:
+                    - Action type is force_mfa_reset
+            is_password_reset:
+                next:
+                    - PasswordReset
+                cel_expression: data['response_actions.#.action_type'] == 'password_reset'
+                display:
+                    - Action type is password_reset
+        output_fields:
+            - WorkflowCustomVariable.user_upn
+            - WorkflowCustomVariable.action_type
+            - WorkflowCustomVariable.action_executed
+            - WorkflowCustomVariable.dry_run
+            - WorkflowCustomVariable.result
+output_fields:
+    - Loop.output

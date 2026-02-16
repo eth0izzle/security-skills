@@ -1,0 +1,214 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W6: Vulnerability Management - Orchestrator
+# NIST RA-5, SI-2, CM-8, CA-7, SI-5 — Orchestrates all vuln-mgmt sub-workflows (W1-W5).
+# Template basis: Custom sequential chain (same as BEC orchestrator)
+
+name: 'Vulnerability Management - Orchestrator'
+description: >-
+  Master orchestrator for vulnerability management workflows. Executes
+  Spotlight Assessment (W1) and Asset Enrichment (W2) automatically.
+  Severity Triage (W3) runs after assessment. Host Remediation (W4) is
+  gated by auto_contain_critical or auto_tag_for_patching. Compliance
+  Reporting (W5) always runs at the end.
+trigger:
+    next:
+        - ExecuteSpotlightAssessment
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            # ── Case parameters ─────────────────────────────────────────
+            case_id:
+                type: string
+                title: Case ID
+                description: Unique identifier for this vulnerability management case.
+            host_ids:
+                items:
+                    type: string
+                type: array
+                title: Host IDs
+                description: CrowdStrike host/device IDs to assess and enrich.
+                minItems: 1
+            # ── Assessment parameters ───────────────────────────────────
+            cve_severity_filter:
+                type: string
+                title: CVE Severity Filter
+                description: Minimum CVE severity to include in Spotlight results.
+                enum:
+                    - Critical
+                    - High
+                    - Medium
+                    - All
+                default: All
+            include_kev_only:
+                type: boolean
+                title: Include KEV Only
+                description: >-
+                  If true, only return CVEs present in the CISA KEV catalog.
+                default: false
+            # ── Triage parameters ───────────────────────────────────────
+            ticketing_system:
+                type: string
+                title: Ticketing System
+                description: >-
+                  Which ticketing system to create tickets in. Use none to
+                  skip ticket creation.
+                enum:
+                    - servicenow
+                    - jira
+                    - none
+                default: none
+            auto_assign:
+                type: boolean
+                title: Auto Assign
+                description: >-
+                  If true, automatically assign tickets to the appropriate team.
+                default: false
+            # ── Remediation parameters (gates W4) ───────────────────────
+            auto_contain_critical:
+                type: boolean
+                title: Auto Contain Critical
+                description: >-
+                  If true, allow network containment of hosts with critical
+                  findings. Gates W4.
+                default: false
+            auto_tag_for_patching:
+                type: boolean
+                title: Auto Tag for Patching
+                description: >-
+                  If true, apply Falcon Grouping Tags for patch management.
+                  Gates W4.
+                default: false
+            # ── Notification parameters ─────────────────────────────────
+            notification_channel:
+                type: string
+                title: Notification Channel
+                description: >-
+                  Channel for sending the compliance report notification.
+                enum:
+                    - slack
+                    - email
+                    - none
+                default: none
+            notification_target:
+                type: string
+                title: Notification Target
+                description: Slack channel name or email address for notifications.
+        required:
+            - case_id
+            - host_ids
+        type: object
+    type: On demand
+actions:
+    # ── Investigation workflows (always run) ────────────────────────
+    ExecuteSpotlightAssessment:
+        # Execute W1: Vulnerability Management - Spotlight Assessment
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - ExecuteAssetEnrichment
+        properties:
+            workflow_name: Vulnerability Management - Spotlight Assessment
+            parameters:
+                host_ids: ${data['host_ids']}
+                cve_severity_filter: ${data['cve_severity_filter']}
+                include_kev_only: ${data['include_kev_only']}
+                case_id: ${data['case_id']}
+    ExecuteAssetEnrichment:
+        # Execute W2: Vulnerability Management - Asset Enrichment
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - ExecuteSeverityTriage
+        properties:
+            workflow_name: Vulnerability Management - Asset Enrichment
+            parameters:
+                host_ids: ${data['host_ids']}
+                case_id: ${data['case_id']}
+    ExecuteSeverityTriage:
+        # Execute W3: Vulnerability Management - Severity Triage and Ticketing
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - check_remediation
+            - ExecuteComplianceReporting
+        properties:
+            workflow_name: Vulnerability Management - Severity Triage and Ticketing
+            parameters:
+                findings: ${data['ExecuteSpotlightAssessment.output']}
+                ticketing_system: ${data['ticketing_system']}
+                auto_assign: ${data['auto_assign']}
+                case_id: ${data['case_id']}
+    # ── Remediation workflow (gated) ────────────────────────────────
+    ExecuteHostRemediation:
+        # Execute W4: Vulnerability Management - Host Remediation Actions
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Vulnerability Management - Host Remediation Actions
+            parameters:
+                host_actions: ${data['ExecuteSeverityTriage.output']}
+                auto_contain_critical: ${data['auto_contain_critical']}
+                auto_tag_for_patching: ${data['auto_tag_for_patching']}
+                case_id: ${data['case_id']}
+    # ── Compliance reporting (always runs) ──────────────────────────
+    ExecuteComplianceReporting:
+        # Execute W5: Vulnerability Management - NIST Compliance Reporting
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Vulnerability Management - NIST Compliance Reporting
+            parameters:
+                case_id: ${data['case_id']}
+                total_hosts_assessed: ${data['ExecuteAssetEnrichment.output']}
+                total_vulnerabilities: ${data['ExecuteSpotlightAssessment.output']}
+                critical_count: ${data['ExecuteSpotlightAssessment.output']}
+                high_count: ${data['ExecuteSpotlightAssessment.output']}
+                kev_count: ${data['ExecuteSpotlightAssessment.output']}
+                hosts_contained: ${data['ExecuteHostRemediation.output']}
+                hosts_tagged: ${data['ExecuteHostRemediation.output']}
+                tickets_created: ${data['ExecuteSeverityTriage.output']}
+                notification_channel: ${data['notification_channel']}
+                notification_target: ${data['notification_target']}
+    # ── Final summary ──────────────────────────────────────────────
+    PrintSummary:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        properties:
+            data: >-
+              ===== VULNERABILITY MANAGEMENT COMPLETE =====
+
+              Case ID: ${data['case_id']}
+
+              Workflows executed:
+                - W1: Spotlight Assessment ............. DONE
+                - W2: Asset Enrichment ................. DONE
+                - W3: Severity Triage and Ticketing .... DONE
+
+              Conditional workflows:
+                - W4: Host Remediation Actions
+                - W5: NIST Compliance Reporting ........ DONE
+
+              Review individual workflow results in the
+              Falcon console under Workflow Executions.
+
+              =============================================
+conditions:
+    # Gate W4: only run if containment or tagging is enabled
+    check_remediation:
+        next:
+            - ExecuteHostRemediation
+        cel_expression: data['auto_contain_critical'] == true || data['auto_tag_for_patching'] == true
+        display:
+            - Auto contain critical or auto tag for patching is enabled
+output_fields:
+    - PrintSummary.output

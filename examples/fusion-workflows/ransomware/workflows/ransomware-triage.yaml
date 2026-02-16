@@ -1,0 +1,95 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W1: Ransomware - Detection Triage
+# NIST IR-4, IR-5 — Gather device and detection details for initial triage.
+# Template basis: assets/single-action.yaml (extended chain like BEC W1)
+
+name: 'Ransomware - Detection Triage'
+description: >-
+  Perform initial triage for a ransomware incident. Retrieves device details
+  for the affected host, conditionally retrieves detection details if a
+  detection ID is provided, and prints a consolidated triage summary.
+trigger:
+    next:
+        - GetDeviceDetails
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            case_id:
+                type: string
+                title: Case ID
+                description: Unique identifier for this ransomware investigation case.
+            detection_id:
+                type: string
+                title: Detection ID
+                description: >-
+                  Optional CrowdStrike detection ID to retrieve detection
+                  details. Leave empty if not applicable.
+            device_id:
+                type: string
+                title: Device ID
+                description: CrowdStrike host/device ID for the affected endpoint.
+            priority:
+                type: string
+                title: Priority
+                description: Investigation priority level.
+                enum:
+                    - Critical
+                    - High
+                    - Medium
+                    - Low
+        required:
+            - case_id
+            - device_id
+        type: object
+    type: On demand
+actions:
+    GetDeviceDetails:
+        # PLACEHOLDER_GET_DEVICE_DETAILS_ID — run: action_search.py --search "Get device details"
+        id: PLACEHOLDER_GET_DEVICE_DETAILS_ID
+        name: Get device details
+        next:
+            - has_detection
+        properties:
+            device_id: ${data['device_id']}
+        version_constraint: ~1
+    GetDetectionDetails:
+        # PLACEHOLDER_GET_DETECTION_DETAILS_ID — run: action_search.py --search "Get detection details"
+        id: PLACEHOLDER_GET_DETECTION_DETAILS_ID
+        name: Get detection details
+        next:
+            - PrintSummary
+        properties:
+            detection_id: ${data['detection_id']}
+        version_constraint: ~1
+    PrintSummary:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        properties:
+            data: >-
+              ===== RANSOMWARE DETECTION TRIAGE =====
+
+              Case ID:        ${data['case_id']}
+
+              Device ID:      ${data['device_id']}
+
+              Detection ID:   ${data['detection_id']}
+
+              Priority:       ${data['priority']}
+
+              Device Details: ${data['GetDeviceDetails']}
+
+              Detection:      ${data['GetDetectionDetails']}
+
+              ======================================
+conditions:
+    has_detection:
+        next:
+            - GetDetectionDetails
+        cel_expression: has(data['detection_id']) && data['detection_id'] != ''
+        display:
+            - Detection ID was provided
+        else:
+            - PrintSummary
+output_fields:
+    - PrintSummary.output

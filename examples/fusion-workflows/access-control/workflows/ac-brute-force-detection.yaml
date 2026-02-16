@@ -1,0 +1,173 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W2: Access Control - Brute Force Detection
+# Template basis: assets/loop.yaml (builds on W1's token pattern)
+# NIST AC-7, IA-2 — Detect brute force and credential stuffing attacks by
+# querying Azure AD sign-in logs for failed authentication attempts.
+# Requires Azure AD app with AuditLog.Read.All permission.
+
+name: 'Access Control - Brute Force Detection'
+description: >-
+  For each user UPN, query Microsoft Graph sign-in logs for failed login
+  attempts within the lookback window. Flags brute force attacks (high
+  volume of failures from few IPs) and credential stuffing (failures from
+  many distinct IPs). Records per-user detection results.
+trigger:
+    next:
+        - check_gate
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            user_upns:
+                items:
+                    type: string
+                type: array
+                title: User UPNs
+                description: >-
+                  List of user principal names (e.g. user@contoso.com) to
+                  check for brute force activity.
+                minItems: 1
+            tenant_id:
+                type: string
+                title: Azure AD Tenant ID
+                description: Azure AD tenant ID for Graph API authentication.
+            client_id:
+                type: string
+                title: Azure AD Client ID
+                description: Azure AD app registration client ID.
+            client_secret:
+                type: string
+                title: Azure AD Client Secret
+                description: Azure AD app registration client secret.
+            lookback_hours:
+                type: integer
+                title: Lookback Hours
+                description: >-
+                  Number of hours to look back in sign-in logs for failed
+                  login attempts. Defaults to 24.
+                default: 24
+            failure_threshold:
+                type: integer
+                title: Failure Threshold
+                description: >-
+                  Number of failed logins to flag as brute force.
+                default: 10
+            run_brute_force_detection:
+                type: boolean
+                title: Run Brute Force Detection
+                description: >-
+                  Gate flag — set to false to skip this workflow when called
+                  from the orchestrator.
+                default: true
+        required:
+            - user_upns
+            - tenant_id
+            - client_id
+            - client_secret
+        type: object
+    type: On demand
+actions:
+    GetGraphToken:
+        # HTTP action to acquire OAuth2 token from Azure AD
+        # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+        id: PLACEHOLDER_HTTP_ACTION_ID
+        name: HTTP request
+        next:
+            - Loop
+        properties:
+            url: https://login.microsoftonline.com/${data['tenant_id']}/oauth2/v2.0/token
+            method: POST
+            headers:
+                Content-Type: application/x-www-form-urlencoded
+            body: >-
+              grant_type=client_credentials&client_id=${data['client_id']}&client_secret=${data['client_secret']}&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default
+        version_constraint: ~1
+conditions:
+    check_gate:
+        next:
+            - GetGraphToken
+        cel_expression: data['run_brute_force_detection'] == true
+        display:
+            - Brute force detection is enabled
+loops:
+    Loop:
+        display: For each User UPNs; Sequentially
+        name: For each User UPNs; Sequentially
+        for:
+            input: user_upns
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - QueryFailedSignIns
+                properties:
+                    variable_schema:
+                        properties:
+                            user_upn:
+                                type: string
+                            failed_login_count:
+                                type: integer
+                            distinct_ips:
+                                type: integer
+                            brute_force_detected:
+                                type: boolean
+                            credential_stuffing_detected:
+                                type: boolean
+                            findings:
+                                type: string
+                        required:
+                            - user_upn
+                            - failed_login_count
+                            - distinct_ips
+                            - brute_force_detected
+                            - credential_stuffing_detected
+                        type: object
+                version_constraint: ~1
+            QueryFailedSignIns:
+                # HTTP GET to Graph API sign-in logs filtered by user and failed status.
+                # Detection logic:
+                #   - Brute force: high volume of failures from few source IPs
+                #   - Credential stuffing: failures from many distinct source IPs
+                #   - status/errorCode ne 0 filters for failed sign-in attempts
+                # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+                id: PLACEHOLDER_HTTP_ACTION_ID
+                name: HTTP request
+                next:
+                    - UpdateVariable
+                properties:
+                    url: >-
+                      https://graph.microsoft.com/v1.0/auditLogs/signIns?$filter=userPrincipalName eq '${data['user_upns.#']}' and status/errorCode ne 0
+                    method: GET
+                    headers:
+                        Authorization: Bearer ${data['GetGraphToken.access_token']}
+                        Content-Type: application/json
+                version_constraint: ~1
+            UpdateVariable:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        failed_login_count: ${data['QueryFailedSignIns.body']}
+                        distinct_ips: 0
+                        brute_force_detected: false
+                        credential_stuffing_detected: false
+                        findings: ${data['QueryFailedSignIns.body']}
+                version_constraint: ~1
+        output_fields:
+            - WorkflowCustomVariable.user_upn
+            - WorkflowCustomVariable.failed_login_count
+            - WorkflowCustomVariable.distinct_ips
+            - WorkflowCustomVariable.brute_force_detected
+            - WorkflowCustomVariable.credential_stuffing_detected
+            - WorkflowCustomVariable.findings
+output_fields:
+    - Loop.output

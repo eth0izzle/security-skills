@@ -1,0 +1,261 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W6: Ransomware - Incident Response Orchestrator
+# NIST IR-4, IR-5, IR-6, SI-3, SI-4, SC-7 — Orchestrates all ransomware
+# sub-workflows (W1-W5) with conditional gating.
+# Template basis: Custom sequential chain (same as BEC orchestrator)
+
+name: 'Ransomware - Incident Response Orchestrator'
+description: >-
+  Master orchestrator for ransomware incident response. Executes the
+  Detection Triage workflow (W1) automatically, then conditionally runs
+  IOC Sweep (W2), Endpoint Containment (W3), RTR Process Kill and File
+  Quarantine (W4), and Identity Lockdown (W5) based on provided parameters.
+  Designed for aggressive, rapid response to ransomware incidents.
+trigger:
+    next:
+        - ExecuteTriage
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            # -- Case and triage parameters (W1) --
+            case_id:
+                type: string
+                title: Case ID
+                description: Unique identifier for this ransomware investigation case.
+            detection_id:
+                type: string
+                title: Detection ID
+                description: >-
+                  Optional CrowdStrike detection ID for triage. Leave empty
+                  if not applicable.
+            device_id:
+                type: string
+                title: Device ID
+                description: CrowdStrike host/device ID for the initially affected endpoint.
+            priority:
+                type: string
+                title: Priority
+                description: Investigation priority level.
+                enum:
+                    - Critical
+                    - High
+                    - Medium
+                    - Low
+                default: Critical
+            # -- IOC Sweep parameters (W2) --
+            iocs:
+                items:
+                    properties:
+                        ioc_type:
+                            type: string
+                            enum:
+                                - ip
+                                - domain
+                                - sha256
+                                - md5
+                        ioc_value:
+                            type: string
+                    required:
+                        - ioc_type
+                        - ioc_value
+                    type: object
+                type: array
+                title: IOCs
+                description: >-
+                  Optional list of IOCs to sweep and block. Each item must
+                  include ioc_type and ioc_value.
+            auto_block:
+                type: boolean
+                title: Auto Block IOCs
+                description: >-
+                  If true, automatically block IOCs after enrichment.
+                  Defaults to true for ransomware.
+                default: true
+            # -- Endpoint Containment parameters (W3) --
+            device_ids_to_contain:
+                items:
+                    type: string
+                type: array
+                title: Device IDs to Contain
+                description: >-
+                  Optional list of CrowdStrike device IDs to network-contain.
+            # -- RTR parameters (W4) --
+            targets:
+                items:
+                    properties:
+                        device_id:
+                            type: string
+                        process_name:
+                            type: string
+                        file_path:
+                            type: string
+                    required:
+                        - device_id
+                    type: object
+                type: array
+                title: RTR Targets
+                description: >-
+                  Optional list of target devices for RTR process kill and
+                  file quarantine. Each item must include device_id and
+                  optionally process_name and file_path.
+            auto_rtr:
+                type: boolean
+                title: Auto RTR
+                description: >-
+                  If true, automatically execute RTR remediation actions.
+                  Defaults to true for ransomware.
+                default: true
+            # -- Identity Lockdown parameters (W5) --
+            compromised_users:
+                items:
+                    type: string
+                type: array
+                title: Compromised Users
+                description: >-
+                  Optional list of compromised user UPNs to lock down.
+            identity_provider:
+                type: string
+                title: Identity Provider
+                description: >-
+                  Which identity provider to use for identity lockdown.
+                enum:
+                    - entra_id
+                    - okta
+                default: entra_id
+        required:
+            - case_id
+            - device_id
+        type: object
+    type: On demand
+actions:
+    # -- W1: Detection Triage (always runs) ------------------------------------
+    ExecuteTriage:
+        # Execute W1: Ransomware - Detection Triage
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - check_iocs
+            - check_containment
+            - check_rtr
+            - check_identity
+        properties:
+            workflow_name: Ransomware - Detection Triage
+            parameters:
+                case_id: ${data['case_id']}
+                detection_id: ${data['detection_id']}
+                device_id: ${data['device_id']}
+                priority: ${data['priority']}
+    # -- W2: IOC Sweep (gated) ------------------------------------------------
+    ExecuteIOCSweep:
+        # Execute W2: Ransomware - IOC Sweep
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Ransomware - IOC Sweep
+            parameters:
+                iocs: ${data['iocs']}
+                auto_block: ${data['auto_block']}
+                case_id: ${data['case_id']}
+    # -- W3: Endpoint Containment (gated) -------------------------------------
+    ExecuteContainment:
+        # Execute W3: Ransomware - Endpoint Containment
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Ransomware - Endpoint Containment
+            parameters:
+                device_ids: ${data['device_ids_to_contain']}
+                containment_note: "Ransomware Case ${data['case_id']} - automated containment"
+                case_id: ${data['case_id']}
+    # -- W4: RTR Process Kill and File Quarantine (gated) ---------------------
+    ExecuteRTR:
+        # Execute W4: Ransomware - RTR Process Kill and File Quarantine
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Ransomware - RTR Process Kill and File Quarantine
+            parameters:
+                targets: ${data['targets']}
+                auto_rtr: ${data['auto_rtr']}
+                case_id: ${data['case_id']}
+    # -- W5: Identity Lockdown (gated) ----------------------------------------
+    ExecuteIdentityLockdown:
+        # Execute W5: Ransomware - Identity Lockdown
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Ransomware - Identity Lockdown
+            parameters:
+                user_upns: ${data['compromised_users']}
+                identity_provider: ${data['identity_provider']}
+                case_id: ${data['case_id']}
+                disable_account: true
+    PrintSummary:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        properties:
+            data: >-
+              ===== RANSOMWARE INCIDENT RESPONSE COMPLETE =====
+
+              Case ID: ${data['case_id']}
+
+              Device ID: ${data['device_id']}
+
+              Priority: ${data['priority']}
+
+              Workflows executed:
+                - W1: Detection Triage .................. DONE
+                - W2: IOC Sweep ......................... (if IOCs provided)
+                - W3: Endpoint Containment .............. (if device IDs provided)
+                - W4: RTR Process Kill & Quarantine ..... (if auto_rtr and targets provided)
+                - W5: Identity Lockdown ................. (if compromised users provided)
+
+              Review individual workflow results in the
+              Falcon console under Workflow Executions.
+
+              ================================================
+conditions:
+    # Gate W2: only run if IOCs were provided
+    check_iocs:
+        next:
+            - ExecuteIOCSweep
+        cel_expression: has(data['iocs']) && size(data['iocs']) > 0
+        display:
+            - IOCs provided for sweep
+    # Gate W3: only run if device IDs were provided for containment
+    check_containment:
+        next:
+            - ExecuteContainment
+        cel_expression: has(data['device_ids_to_contain']) && size(data['device_ids_to_contain']) > 0
+        display:
+            - Device IDs provided for containment
+    # Gate W4: only run if auto_rtr is true and targets were provided
+    check_rtr:
+        next:
+            - ExecuteRTR
+        cel_expression: data['auto_rtr'] == true && has(data['targets']) && size(data['targets']) > 0
+        display:
+            - Auto RTR enabled and targets provided
+    # Gate W5: only run if compromised users were provided
+    check_identity:
+        next:
+            - ExecuteIdentityLockdown
+        cel_expression: has(data['compromised_users']) && size(data['compromised_users']) > 0
+        display:
+            - Compromised users provided for identity lockdown
+output_fields:
+    - PrintSummary.output

@@ -9,12 +9,14 @@ Usage:
     python action_search.py --vendor "Okta" --list    # Filter to a specific vendor
     python action_search.py --use-case "Identity"     # Filter by use case
     python action_search.py --search "contain" --json # Machine-readable output
+    python action_search.py --clear-cache             # Clear the local action cache
 """
 
 import argparse
 import json
 import sys
 import os
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cs_auth import load_env, api_get
@@ -25,27 +27,146 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ACTIVITIES_COMBINED = "/workflows/combined/activities/v1"
 ACTIVITIES_ENTITIES = "/workflows/entities/activities/v1"
 
+# Cache settings — full catalog is cached locally to avoid repeated full scans.
+# The cache is only used for operations that must scan all actions (--vendors,
+# --use-case).  Targeted searches use server-side FQL filtering and skip the cache.
+_CACHE_DIR = os.path.dirname(os.path.abspath(__file__))
+_CACHE_FILE = os.path.join(_CACHE_DIR, ".action_cache.json")
+_CACHE_TTL = 3600  # 1 hour
 
-def _paginate_all(progress=False):
-    """Paginate through all actions. Yields each resource dict."""
+
+# ── Server-side FQL filtering ──────────────────────────────────────────────
+# The Combined Activities endpoint supports FQL `filter` with these fields:
+#   name:'keyword'          — substring match on action name
+#   vendor:'VendorName'     — exact vendor match
+# Combined with `+`:  vendor:'CrowdStrike'+name:'email'
+
+
+def _fql_search(query, vendor_filter=None, limit=200):
+    """Search actions using server-side FQL filter.  Returns (results, total).
+
+    Falls back to None on FQL error so the caller can retry client-side.
+    """
+    parts = []
+    if vendor_filter:
+        parts.append(f"vendor:'{vendor_filter}'")
+    if query:
+        parts.append(f"name:'{query}'")
+    fql = "+".join(parts)
+
+    results = []
     offset = 0
     total = None
     while True:
-        resp = api_get(ACTIVITIES_COMBINED, params={"limit": 200, "offset": offset})
+        params = {"limit": limit, "offset": offset, "filter": fql}
+        try:
+            resp = api_get(ACTIVITIES_COMBINED, params=params)
+        except Exception:
+            return None  # FQL not supported / transient error — caller retries
         resources = resp.get("resources", [])
         if not resources:
             break
         if total is None:
             total = resp.get("meta", {}).get("pagination", {}).get("total", 0)
-        for r in resources:
-            yield r
+        results.extend(resources)
         offset += len(resources)
+        if offset >= total:
+            break
+    return results
+
+
+def _fql_vendor(vendor, limit=200):
+    """Return all actions for a vendor using server-side FQL filter."""
+    return _fql_search(query=None, vendor_filter=vendor, limit=limit)
+
+
+# ── Local cache for full-catalog operations ────────────────────────────────
+
+
+def _load_cache():
+    """Load cached catalog if fresh, else return None."""
+    if not os.path.isfile(_CACHE_FILE):
+        return None
+    try:
+        with open(_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if time.time() - data.get("ts", 0) < _CACHE_TTL:
+            return data["resources"]
+    except (json.JSONDecodeError, KeyError, OSError):
+        pass
+    return None
+
+
+def _save_cache(resources):
+    """Persist catalog to local cache file."""
+    try:
+        with open(_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump({"ts": time.time(), "resources": resources}, f)
+    except OSError:
+        pass  # non-fatal — next run will just re-fetch
+
+
+def _clear_cache():
+    """Delete the local cache file."""
+    try:
+        os.remove(_CACHE_FILE)
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def _paginate_all(progress=False):
+    """Return the full action catalog, using cache when available.
+
+    Retries individual page fetches up to 3 times to handle transient
+    connection resets from the CrowdStrike API.
+    """
+    cached = _load_cache()
+    if cached is not None:
+        if progress:
+            print(f"  Using cached catalog ({len(cached)} actions, < 1 hr old)")
+        return cached
+
+    resources = []
+    offset = 0
+    total = None
+    max_retries = 3
+    while True:
+        for attempt in range(1, max_retries + 1):
+            try:
+                resp = api_get(ACTIVITIES_COMBINED, params={"limit": 200, "offset": offset})
+                break
+            except Exception as e:
+                if attempt < max_retries:
+                    if progress:
+                        print(f"\n  Connection error, retrying ({attempt}/{max_retries})...", flush=True)
+                    time.sleep(2 * attempt)  # backoff: 2s, 4s
+                else:
+                    if progress:
+                        print(f"\n  Failed after {max_retries} retries at offset {offset}.")
+                    # Return what we have so far rather than crash
+                    if resources:
+                        _save_cache(resources)
+                    return resources
+        page = resp.get("resources", [])
+        if not page:
+            break
+        if total is None:
+            total = resp.get("meta", {}).get("pagination", {}).get("total", 0)
+        resources.extend(page)
+        offset += len(page)
         if progress and total:
             print(f"\r  Scanning actions... ({min(offset, total)}/{total})", end="", flush=True)
         if offset >= total:
             break
     if progress:
         print()
+
+    _save_cache(resources)
+    return resources
+
+
+# ── Search / filter helpers ────────────────────────────────────────────────
 
 
 def list_vendors():
@@ -63,53 +184,76 @@ def list_vendors():
     return vendors
 
 
-def search_actions(query, limit=25, offset=0, vendor_filter=None):
-    """Search activities by name (case-insensitive substring match).
-    Optional vendor_filter narrows results to a specific vendor."""
-    results = []
-    while True:
-        resp = api_get(ACTIVITIES_COMBINED, params={"limit": limit, "offset": offset})
-        resources = resp.get("resources", [])
-        if not resources:
-            break
-        for r in resources:
-            if vendor_filter and r.get("vendor", "").lower() != vendor_filter.lower():
-                continue
-            name = r.get("name", "")
-            if query.lower() in name.lower():
-                results.append(r)
-        meta = resp.get("meta", {}).get("pagination", {})
-        total = meta.get("total", 0)
-        offset += len(resources)
-        if offset >= total:
-            break
-    return results
+def _client_side_search(query, vendor_filter=None):
+    """Scan the cached catalog for actions matching *query* (substring, case-insensitive)."""
+    all_actions = _paginate_all(progress=True)
+    out = []
+    ql = query.lower()
+    for r in all_actions:
+        if vendor_filter and r.get("vendor", "").lower() != vendor_filter.lower():
+            continue
+        if ql in r.get("name", "").lower():
+            out.append(r)
+    return out
+
+
+def search_actions(query, vendor_filter=None):
+    """Search activities by name.  Uses FQL server-side filter first, then
+    falls back to a smart client-side filter.
+
+    FQL handles single-word queries well but returns 0 for multi-word
+    substrings (e.g. "detection details").  For multi-word queries we:
+      1. FQL-search the longest single word (returns a small result set fast)
+      2. Client-side filter that small set for the full multi-word query
+    This avoids the slow full-catalog scan entirely.
+    """
+    # Fast path — server-side FQL with the full query
+    results = _fql_search(query, vendor_filter=vendor_filter)
+    if results is not None and len(results) > 0:
+        return results
+
+    # FQL returned 0 or failed.  For multi-word queries, narrow via the
+    # longest single word, then filter client-side on that small set.
+    words = query.split()
+    if len(words) > 1:
+        longest = max(words, key=len)
+        fql_results = _fql_search(longest, vendor_filter=vendor_filter)
+        if fql_results is not None and len(fql_results) > 0:
+            ql = query.lower()
+            return [r for r in fql_results if ql in r.get("name", "").lower()]
+
+    # Last resort — full catalog scan (single-word query that FQL missed,
+    # or FQL error).  Uses cache if available.
+    return _client_side_search(query, vendor_filter=vendor_filter)
 
 
 def search_by_vendor(vendor):
-    """Return all actions for a specific vendor (case-insensitive)."""
-    results = []
-    for r in _paginate_all(progress=True):
-        if r.get("vendor", "").lower() == vendor.lower():
-            results.append(r)
-    return results
+    """Return all actions for a specific vendor."""
+    # Fast path — server-side FQL
+    results = _fql_vendor(vendor)
+    if results is not None:
+        return results
+
+    # Fallback — client-side scan
+    return [r for r in _paginate_all(progress=True)
+            if r.get("vendor", "").lower() == vendor.lower()]
 
 
 def search_by_use_case(use_case):
-    """Return all actions matching a use case substring (case-insensitive)."""
+    """Return all actions matching a use case substring (client-side, uses cache)."""
+    ucl = use_case.lower()
     results = []
     for r in _paginate_all(progress=True):
         for uc in r.get("use_cases", []):
-            if use_case.lower() in uc.lower():
+            if ucl in uc.lower():
                 results.append(r)
                 break
     return results
 
 
 def list_actions(limit=25, offset=0, vendor_filter=None):
-    """List activities with pagination. Optional vendor_filter narrows to a vendor."""
+    """List activities with pagination."""
     if vendor_filter:
-        # Must paginate all to filter client-side
         all_for_vendor = search_by_vendor(vendor_filter)
         page = all_for_vendor[offset:offset + limit]
         return page, len(all_for_vendor)
@@ -124,6 +268,9 @@ def get_action_details(action_id):
     resp = api_get(ACTIVITIES_ENTITIES, params={"ids": action_id})
     resources = resp.get("resources", [])
     return resources[0] if resources else None
+
+
+# ── Formatting ─────────────────────────────────────────────────────────────
 
 
 def format_action_summary(action):
@@ -210,6 +357,9 @@ def format_vendors_table(vendors):
     return "\n".join(lines)
 
 
+# ── CLI ────────────────────────────────────────────────────────────────────
+
+
 def main():
     parser = argparse.ArgumentParser(description="Search CrowdStrike Fusion actions")
     group = parser.add_mutually_exclusive_group()
@@ -217,6 +367,7 @@ def main():
     group.add_argument("--details", "-d", metavar="ID", help="Show full details for an action ID")
     group.add_argument("--list", "-l", action="store_true", help="List actions (paginated)")
     group.add_argument("--vendors", action="store_true", help="List all available vendors/integrations")
+    group.add_argument("--clear-cache", action="store_true", help="Clear the local action cache")
     parser.add_argument("--vendor", metavar="NAME", help="Filter to a specific vendor")
     parser.add_argument("--use-case", metavar="TERM", help="Filter by use case")
     parser.add_argument("--limit", type=int, default=25, help="Results per page (default: 25)")
@@ -225,8 +376,17 @@ def main():
     args = parser.parse_args()
 
     # Require at least one mode of operation
-    if not any([args.search, args.details, args.list, args.vendors, args.vendor, args.use_case]):
-        parser.error("one of --search, --details, --list, --vendors, --vendor, or --use-case is required")
+    if not any([args.search, args.details, args.list, args.vendors, args.vendor,
+                args.use_case, args.clear_cache]):
+        parser.error("one of --search, --details, --list, --vendors, --vendor, "
+                     "--use-case, or --clear-cache is required")
+
+    if args.clear_cache:
+        if _clear_cache():
+            print("Cache cleared.")
+        else:
+            print("No cache file found.")
+        return
 
     if args.vendors:
         vendors = list_vendors()
@@ -273,7 +433,7 @@ def main():
                 print()
 
     elif args.search:
-        results = search_actions(args.search, limit=args.limit, vendor_filter=args.vendor)
+        results = search_actions(args.search, vendor_filter=args.vendor)
         if args.use_case:
             results = [r for r in results if any(
                 args.use_case.lower() in uc.lower() for uc in r.get("use_cases", [])

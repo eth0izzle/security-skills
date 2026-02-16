@@ -1,0 +1,314 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W3: Vulnerability Management - Severity Triage and Ticketing
+# NIST SI-2, SI-5 — Route findings by severity, assign priority, and create tickets.
+# Template basis: assets/loop-conditional.yaml (severity routing + ticketing plugins)
+
+name: 'Vulnerability Management - Severity Triage and Ticketing'
+description: >-
+  Triage vulnerability findings by severity and CISA KEV status. Assigns
+  priority levels (P1-P3), then optionally creates tickets in ServiceNow
+  or Jira based on the configured ticketing system. Only runs when
+  findings exist (called by orchestrator conditionally).
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            findings:
+                items:
+                    properties:
+                        host_id:
+                            type: string
+                            title: Host ID
+                            description: CrowdStrike host/device ID.
+                        cve_id:
+                            type: string
+                            title: CVE ID
+                            description: CVE identifier (e.g. CVE-2024-12345).
+                        severity:
+                            type: string
+                            title: Severity
+                            description: CVE severity level.
+                            enum:
+                                - Critical
+                                - High
+                                - Medium
+                                - Low
+                        kev:
+                            type: boolean
+                            title: KEV
+                            description: Whether this CVE is in the CISA KEV catalog.
+                        description:
+                            type: string
+                            title: Description
+                            description: CVE description text.
+                    required:
+                        - host_id
+                        - cve_id
+                        - severity
+                        - kev
+                    type: object
+                type: array
+                title: Findings
+                description: >-
+                  List of vulnerability findings to triage. Each item includes
+                  host_id, cve_id, severity, kev status, and description.
+                minItems: 1
+            ticketing_system:
+                type: string
+                title: Ticketing System
+                description: >-
+                  Which ticketing system to create tickets in. Use none to
+                  skip ticket creation.
+                enum:
+                    - servicenow
+                    - jira
+                    - none
+                default: none
+            auto_assign:
+                type: boolean
+                title: Auto Assign
+                description: >-
+                  If true, automatically assign tickets to the appropriate
+                  team. Defaults to false.
+                default: false
+            case_id:
+                type: string
+                title: Case ID
+                description: Optional case ID for tracking.
+        required:
+            - findings
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each Findings; Sequentially
+        name: For each Findings; Sequentially
+        for:
+            input: findings
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - is_kev_critical
+                    - is_high
+                    - is_medium
+                properties:
+                    variable_schema:
+                        properties:
+                            host_id:
+                                type: string
+                            cve_id:
+                                type: string
+                            severity:
+                                type: string
+                            kev:
+                                type: boolean
+                            priority_assigned:
+                                type: string
+                            ticket_created:
+                                type: boolean
+                            ticket_id:
+                                type: string
+                        required:
+                            - host_id
+                            - cve_id
+                            - severity
+                            - priority_assigned
+                            - ticket_created
+                        type: object
+                version_constraint: ~1
+            # ── Priority assignment branches ────────────────────────────
+            AssignP1:
+                id: aadbf530e35fc452a032f5f8acaaac2a
+                name: Print data
+                next:
+                    - check_ticketing_p1
+                properties:
+                    data: >-
+                      P1 ASSIGNED: ${data['findings.#.cve_id']} on host
+                      ${data['findings.#.host_id']} — severity
+                      ${data['findings.#.severity']}, KEV:
+                      ${data['findings.#.kev']}
+            AssignP2:
+                id: aadbf530e35fc452a032f5f8acaaac2a
+                name: Print data
+                next:
+                    - check_ticketing_p2
+                properties:
+                    data: >-
+                      P2 ASSIGNED: ${data['findings.#.cve_id']} on host
+                      ${data['findings.#.host_id']} — severity High
+            AssignP3:
+                id: aadbf530e35fc452a032f5f8acaaac2a
+                name: Print data
+                next:
+                    - check_ticketing_p3
+                properties:
+                    data: >-
+                      P3 ASSIGNED: ${data['findings.#.cve_id']} on host
+                      ${data['findings.#.host_id']} — severity Medium
+            # ── Ticketing branches ──────────────────────────────────────
+            CreateTicketServiceNow:
+                # PLACEHOLDER_SERVICENOW_CREATE_TICKET_ID — run: action_search.py --search "servicenow"
+                # Plugin: ServiceNow — Create incident
+                id: PLACEHOLDER_SERVICENOW_CREATE_TICKET_ID
+                name: ServiceNow - Create incident
+                next:
+                    - UpdateVariableTicketed
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console → CrowdStrike Store → ServiceNow → Integration settings
+                    params:
+                        short_description: "[VulnMgmt] ${data['findings.#.cve_id']} on ${data['findings.#.host_id']}"
+                        description: ${data['findings.#.description']}
+                        urgency: ${data['findings.#.severity']}
+                        case_id: ${data['case_id']}
+            CreateTicketJira:
+                # PLACEHOLDER_JIRA_CREATE_ISSUE_ID — run: action_search.py --search "jira"
+                # Plugin: Jira — Create issue
+                id: PLACEHOLDER_JIRA_CREATE_ISSUE_ID
+                name: Jira - Create issue
+                next:
+                    - UpdateVariableTicketed
+                properties:
+                    config_id: PLACEHOLDER_CONFIG_ID
+                    # To find config_id: Falcon console → CrowdStrike Store → Jira → Integration settings
+                    params:
+                        summary: "[VulnMgmt] ${data['findings.#.cve_id']} on ${data['findings.#.host_id']}"
+                        description: ${data['findings.#.description']}
+                        priority: ${data['findings.#.severity']}
+                        case_id: ${data['case_id']}
+            # ── Update variable branches ────────────────────────────────
+            UpdateVariableTicketed:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - ticketed
+                properties:
+                    WorkflowCustomVariable:
+                        host_id: ${data['findings.#.host_id']}
+                        cve_id: ${data['findings.#.cve_id']}
+                        severity: ${data['findings.#.severity']}
+                        kev: ${data['findings.#.kev']}
+                        priority_assigned: ${data['AssignP1.output']}
+                        ticket_created: true
+                        ticket_id: ${data['CreateTicketServiceNow.sys_id']}
+                version_constraint: ~1
+            UpdateVariableNoTicket:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - no ticket
+                properties:
+                    WorkflowCustomVariable:
+                        host_id: ${data['findings.#.host_id']}
+                        cve_id: ${data['findings.#.cve_id']}
+                        severity: ${data['findings.#.severity']}
+                        kev: ${data['findings.#.kev']}
+                        priority_assigned: ${data['findings.#.severity']}
+                        ticket_created: false
+                        ticket_id: ""
+                version_constraint: ~1
+        conditions:
+            # ── Severity routing conditions ─────────────────────────────
+            is_kev_critical:
+                next:
+                    - AssignP1
+                cel_expression: data['findings.#.kev'] == true || data['findings.#.severity'] == 'Critical'
+                display:
+                    - Finding is in CISA KEV or severity is Critical
+            is_high:
+                next:
+                    - AssignP2
+                cel_expression: data['findings.#.severity'] == 'High' && data['findings.#.kev'] == false
+                display:
+                    - Severity is High and not in KEV
+            is_medium:
+                next:
+                    - AssignP3
+                cel_expression: data['findings.#.severity'] == 'Medium' && data['findings.#.kev'] == false
+                display:
+                    - Severity is Medium and not in KEV
+            # ── Ticketing gate conditions ───────────────────────────────
+            check_ticketing_p1:
+                next:
+                    - is_servicenow_p1
+                    - is_jira_p1
+                cel_expression: data['ticketing_system'] != 'none'
+                display:
+                    - Ticketing system is configured (P1 path)
+                else:
+                    - UpdateVariableNoTicket
+            check_ticketing_p2:
+                next:
+                    - is_servicenow_p2
+                    - is_jira_p2
+                cel_expression: data['ticketing_system'] != 'none'
+                display:
+                    - Ticketing system is configured (P2 path)
+                else:
+                    - UpdateVariableNoTicket
+            check_ticketing_p3:
+                next:
+                    - is_servicenow_p3
+                    - is_jira_p3
+                cel_expression: data['ticketing_system'] != 'none'
+                display:
+                    - Ticketing system is configured (P3 path)
+                else:
+                    - UpdateVariableNoTicket
+            # ── Ticketing system routing ────────────────────────────────
+            is_servicenow_p1:
+                next:
+                    - CreateTicketServiceNow
+                cel_expression: data['ticketing_system'] == 'servicenow'
+                display:
+                    - Ticketing system is ServiceNow (P1)
+            is_jira_p1:
+                next:
+                    - CreateTicketJira
+                cel_expression: data['ticketing_system'] == 'jira'
+                display:
+                    - Ticketing system is Jira (P1)
+            is_servicenow_p2:
+                next:
+                    - CreateTicketServiceNow
+                cel_expression: data['ticketing_system'] == 'servicenow'
+                display:
+                    - Ticketing system is ServiceNow (P2)
+            is_jira_p2:
+                next:
+                    - CreateTicketJira
+                cel_expression: data['ticketing_system'] == 'jira'
+                display:
+                    - Ticketing system is Jira (P2)
+            is_servicenow_p3:
+                next:
+                    - CreateTicketServiceNow
+                cel_expression: data['ticketing_system'] == 'servicenow'
+                display:
+                    - Ticketing system is ServiceNow (P3)
+            is_jira_p3:
+                next:
+                    - CreateTicketJira
+                cel_expression: data['ticketing_system'] == 'jira'
+                display:
+                    - Ticketing system is Jira (P3)
+        output_fields:
+            - WorkflowCustomVariable.host_id
+            - WorkflowCustomVariable.cve_id
+            - WorkflowCustomVariable.severity
+            - WorkflowCustomVariable.kev
+            - WorkflowCustomVariable.priority_assigned
+            - WorkflowCustomVariable.ticket_created
+            - WorkflowCustomVariable.ticket_id
+output_fields:
+    - Loop.output

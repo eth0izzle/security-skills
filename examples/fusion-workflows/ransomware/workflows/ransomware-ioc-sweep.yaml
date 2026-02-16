@@ -1,0 +1,198 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W2: Ransomware - IOC Sweep
+# NIST SI-3, SI-4 — Sweep IOCs against ThreatGraph and aggressively block.
+# Template basis: assets/loop-conditional.yaml (reuse BEC W5 pattern)
+
+name: 'Ransomware - IOC Sweep'
+description: >-
+  Sweep a list of IOCs (IP, domain, SHA256, MD5) against CrowdStrike
+  ThreatGraph to identify affected devices. Defaults to aggressive blocking
+  (auto_block=true, block_policy=block) appropriate for ransomware response.
+  Routes each IOC to the correct enrichment action based on type.
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            iocs:
+                items:
+                    properties:
+                        ioc_type:
+                            type: string
+                            title: IOC Type
+                            description: Type of indicator.
+                            enum:
+                                - ip
+                                - domain
+                                - sha256
+                                - md5
+                        ioc_value:
+                            type: string
+                            title: IOC Value
+                            description: The indicator value (IP address, domain, hash).
+                    required:
+                        - ioc_type
+                        - ioc_value
+                    type: object
+                type: array
+                title: IOCs
+                description: >-
+                  List of IOCs to sweep and optionally block. Each item must
+                  include ioc_type (ip/domain/sha256/md5) and ioc_value.
+                minItems: 1
+            auto_block:
+                type: boolean
+                title: Auto Block
+                description: >-
+                  If true, automatically create IOC block entries after
+                  enrichment. Defaults to true for ransomware response.
+                default: true
+            block_policy:
+                type: string
+                title: Block Policy
+                description: >-
+                  Policy action for blocked IOCs — detect (alert only) or
+                  block (prevent). Defaults to block for ransomware response.
+                enum:
+                    - detect
+                    - block
+                default: block
+            case_id:
+                type: string
+                title: Case ID
+                description: Ransomware case ID for tracking.
+        required:
+            - iocs
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each IOCs; Sequentially
+        name: For each IOCs; Sequentially
+        for:
+            input: iocs
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - is_ip
+                    - is_domain
+                    - is_hash
+                properties:
+                    variable_schema:
+                        properties:
+                            ioc_type:
+                                type: string
+                            ioc_value:
+                                type: string
+                            devices_found:
+                                type: integer
+                            enrichment_result:
+                                type: string
+                            blocked:
+                                type: boolean
+                        required:
+                            - ioc_type
+                            - ioc_value
+                            - devices_found
+                        type: object
+                version_constraint: ~1
+            GetDevicesIPv4:
+                # PLACEHOLDER_GET_DEVICES_IPV4_ID — run: action_search.py --search "devices associated"
+                id: PLACEHOLDER_GET_DEVICES_IPV4_ID
+                name: Get devices associated with an IPv4 address
+                next:
+                    - UpdateVariableIP
+                properties:
+                    ipv4: ${data['iocs.#.ioc_value']}
+                version_constraint: ~1
+            UpdateVariableIP:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - IP
+                properties:
+                    WorkflowCustomVariable:
+                        ioc_type: ${data['iocs.#.ioc_type']}
+                        ioc_value: ${data['iocs.#.ioc_value']}
+                        devices_found: ${data['GetDevicesIPv4.Count']}
+                        enrichment_result: ${data['GetDevicesIPv4.Connections']}
+                        blocked: false
+                version_constraint: ~1
+            GetDevicesDomain:
+                # PLACEHOLDER_GET_DEVICES_DOMAIN_ID — run: action_search.py --search "devices associated"
+                id: PLACEHOLDER_GET_DEVICES_DOMAIN_ID
+                name: Get devices associated with a domain
+                next:
+                    - UpdateVariableDomain
+                properties:
+                    domain: ${data['iocs.#.ioc_value']}
+                version_constraint: ~1
+            UpdateVariableDomain:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - Domain
+                properties:
+                    WorkflowCustomVariable:
+                        ioc_type: ${data['iocs.#.ioc_type']}
+                        ioc_value: ${data['iocs.#.ioc_value']}
+                        devices_found: ${data['GetDevicesDomain.Count']}
+                        enrichment_result: ${data['GetDevicesDomain.Connections']}
+                        blocked: false
+                version_constraint: ~1
+            GetDevicesHash:
+                # PLACEHOLDER_GET_DEVICES_HASH_ID — run: action_search.py --search "devices associated"
+                id: PLACEHOLDER_GET_DEVICES_HASH_ID
+                name: Get devices that have observed a SHA256 hash
+                next:
+                    - UpdateVariableHash
+                properties:
+                    sha256: ${data['iocs.#.ioc_value']}
+                version_constraint: ~1
+            UpdateVariableHash:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - Hash
+                properties:
+                    WorkflowCustomVariable:
+                        ioc_type: ${data['iocs.#.ioc_type']}
+                        ioc_value: ${data['iocs.#.ioc_value']}
+                        devices_found: ${data['GetDevicesHash.Count']}
+                        enrichment_result: ${data['GetDevicesHash.Connections']}
+                        blocked: false
+                version_constraint: ~1
+        conditions:
+            is_ip:
+                next:
+                    - GetDevicesIPv4
+                cel_expression: data['iocs.#.ioc_type'] == 'ip'
+                display:
+                    - IOC type is IP address
+            is_domain:
+                next:
+                    - GetDevicesDomain
+                cel_expression: data['iocs.#.ioc_type'] == 'domain'
+                display:
+                    - IOC type is domain
+            is_hash:
+                next:
+                    - GetDevicesHash
+                cel_expression: data['iocs.#.ioc_type'] == 'sha256' || data['iocs.#.ioc_type'] == 'md5'
+                display:
+                    - IOC type is SHA256 or MD5 hash
+        output_fields:
+            - WorkflowCustomVariable.ioc_type
+            - WorkflowCustomVariable.ioc_value
+            - WorkflowCustomVariable.devices_found
+            - WorkflowCustomVariable.enrichment_result
+            - WorkflowCustomVariable.blocked
+output_fields:
+    - Loop.output

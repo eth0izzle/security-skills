@@ -1,0 +1,129 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W2: Vulnerability Management - Asset Enrichment
+# NIST CM-8, RA-5 — Enrich each host with device details, Discover data, and exposure scores.
+# Template basis: assets/loop.yaml
+
+name: 'Vulnerability Management - Asset Enrichment'
+description: >-
+  For each CrowdStrike host ID, retrieve device details, query Discover
+  for asset inventory data, and pull Exposure Management scores to build
+  a comprehensive asset profile for vulnerability prioritization.
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            host_ids:
+                items:
+                    type: string
+                type: array
+                title: Host IDs
+                description: CrowdStrike host/device IDs to enrich.
+                minItems: 1
+            case_id:
+                type: string
+                title: Case ID
+                description: Optional case ID for tracking.
+        required:
+            - host_ids
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each Host IDs; Sequentially
+        name: For each Host IDs; Sequentially
+        for:
+            input: host_ids
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - GetHostDetails
+                properties:
+                    variable_schema:
+                        properties:
+                            host_id:
+                                type: string
+                            hostname:
+                                type: string
+                            os_version:
+                                type: string
+                            ou:
+                                type: string
+                            tags:
+                                type: string
+                            last_seen:
+                                type: string
+                            exposure_score:
+                                type: integer
+                            asset_criticality:
+                                type: string
+                        required:
+                            - host_id
+                            - hostname
+                            - os_version
+                            - exposure_score
+                        type: object
+                version_constraint: ~1
+            GetHostDetails:
+                # PLACEHOLDER_GET_DEVICE_DETAILS_ID — run: action_search.py --search "device details"
+                id: PLACEHOLDER_GET_DEVICE_DETAILS_ID
+                name: Get device details
+                next:
+                    - QueryDiscover
+                properties:
+                    device_id: ${data['host_ids.#']}
+                version_constraint: ~1
+            QueryDiscover:
+                # PLACEHOLDER_DISCOVER_QUERY_ID — run: action_search.py --search "discover"
+                id: PLACEHOLDER_DISCOVER_QUERY_ID
+                name: Query Discover assets
+                next:
+                    - QueryExposureManagement
+                properties:
+                    filter: ${data['host_ids.#']}
+                version_constraint: ~1
+            QueryExposureManagement:
+                # PLACEHOLDER_EXPOSURE_MGMT_ID — run: action_search.py --search "exposure"
+                id: PLACEHOLDER_EXPOSURE_MGMT_ID
+                name: Query Exposure Management
+                next:
+                    - UpdateVariable
+                properties:
+                    host_id: ${data['host_ids.#']}
+                version_constraint: ~1
+            UpdateVariable:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable
+                properties:
+                    WorkflowCustomVariable:
+                        host_id: ${data['host_ids.#']}
+                        hostname: ${data['GetHostDetails.Hostname']}
+                        os_version: ${data['GetHostDetails.OSVersion']}
+                        ou: ${data['GetHostDetails.OU']}
+                        tags: ${data['GetHostDetails.Tags']}
+                        last_seen: ${data['GetHostDetails.LastSeen']}
+                        exposure_score: ${data['QueryExposureManagement.ExposureScore']}
+                        asset_criticality: ${data['QueryExposureManagement.AssetCriticality']}
+                version_constraint: ~1
+        output_fields:
+            - WorkflowCustomVariable.host_id
+            - WorkflowCustomVariable.hostname
+            - WorkflowCustomVariable.os_version
+            - WorkflowCustomVariable.ou
+            - WorkflowCustomVariable.tags
+            - WorkflowCustomVariable.last_seen
+            - WorkflowCustomVariable.exposure_score
+            - WorkflowCustomVariable.asset_criticality
+output_fields:
+    - Loop.output

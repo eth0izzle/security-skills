@@ -1,0 +1,305 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W6: Access Control - Orchestrator
+# Template basis: Custom sequential chain (same as BEC orchestrator)
+# NIST AC-2, AC-6, AC-7, IA-2, IA-5 — Orchestrates all Access Control
+# sub-workflows (W1-W5). Each sub-workflow is individually gatable via
+# boolean parameters so analysts can enable only the checks they need.
+
+name: 'Access Control - Orchestrator'
+description: >-
+  Master orchestrator for Access Control investigations. Conditionally
+  executes Stale Account Audit (W1), Brute Force Detection (W2), Privilege
+  Escalation Detection (W3), Credential Compromise Assessment (W4), and
+  Suspicious Access Response (W5) based on gate parameters. Each
+  sub-workflow runs independently and reports results to a summary print.
+trigger:
+    next:
+        - check_stale
+        - check_brute
+        - check_privesc
+        - check_cred
+        - check_response
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            # ── Case parameters ──────────────────────────────────────────
+            case_id:
+                type: string
+                title: Case ID
+                description: Unique identifier for this access control investigation case.
+            user_upns:
+                items:
+                    type: string
+                type: array
+                title: User UPNs
+                description: >-
+                  List of user principal names (e.g. user@contoso.com) to
+                  investigate across all sub-workflows.
+                minItems: 1
+            identity_provider:
+                type: string
+                title: Identity Provider
+                description: >-
+                  Which identity provider to use for W1 and W3.
+                enum:
+                    - entra_id
+                    - okta
+                default: entra_id
+            # ── Graph API credentials (shared across W1-W4) ─────────────
+            tenant_id:
+                type: string
+                title: Azure AD Tenant ID
+                description: Azure AD tenant ID for Graph API authentication.
+            client_id:
+                type: string
+                title: Azure AD Client ID
+                description: Azure AD app registration client ID.
+            client_secret:
+                type: string
+                title: Azure AD Client Secret
+                description: Azure AD app registration client secret.
+            # ── W1: Stale Account Audit parameters ───────────────────────
+            run_stale_account_audit:
+                type: boolean
+                title: Run Stale Account Audit
+                description: >-
+                  Enable W1: Stale and Orphaned Account Audit.
+                default: false
+            inactivity_threshold_days:
+                type: integer
+                title: Inactivity Threshold Days
+                description: >-
+                  Days of inactivity before account is flagged as stale (W1).
+                default: 90
+            # ── W2: Brute Force Detection parameters ─────────────────────
+            run_brute_force_detection:
+                type: boolean
+                title: Run Brute Force Detection
+                description: >-
+                  Enable W2: Brute Force Detection.
+                default: false
+            lookback_hours:
+                type: integer
+                title: Lookback Hours
+                description: >-
+                  Hours to look back for failed logins (W2).
+                default: 24
+            failure_threshold:
+                type: integer
+                title: Failure Threshold
+                description: >-
+                  Number of failed logins to flag as brute force (W2).
+                default: 10
+            # ── W3: Privilege Escalation Detection parameters ────────────
+            run_privilege_escalation_detection:
+                type: boolean
+                title: Run Privilege Escalation Detection
+                description: >-
+                  Enable W3: Privilege Escalation Detection.
+                default: false
+            lookback_days:
+                type: integer
+                title: Lookback Days
+                description: >-
+                  Days to look back for role changes (W3).
+                default: 30
+            # ── W4: Credential Compromise Assessment parameters ──────────
+            run_credential_assessment:
+                type: boolean
+                title: Run Credential Assessment
+                description: >-
+                  Enable W4: Credential Compromise Assessment.
+                default: false
+            check_cs_identity_protection:
+                type: boolean
+                title: Check CrowdStrike Identity Protection
+                description: >-
+                  Query CrowdStrike Identity Protection in W4 if licensed.
+                default: false
+            # ── W5: Suspicious Access Response parameters ────────────────
+            response_actions:
+                items:
+                    properties:
+                        user_upn:
+                            type: string
+                        action_type:
+                            type: string
+                            enum:
+                                - disable_account
+                                - revoke_sessions
+                                - force_mfa_reset
+                                - remove_role
+                                - password_reset
+                        role_to_remove:
+                            type: string
+                    required:
+                        - user_upn
+                        - action_type
+                    type: object
+                type: array
+                title: Response Actions
+                description: >-
+                  Optional list of remediation actions for W5. Each item must
+                  include user_upn and action_type.
+            dry_run:
+                type: boolean
+                title: Dry Run
+                description: >-
+                  If true, W5 logs planned actions without executing.
+                  Defaults to true for safety.
+                default: true
+        required:
+            - case_id
+            - user_upns
+            - tenant_id
+            - client_id
+            - client_secret
+        type: object
+    type: On demand
+actions:
+    # ── W1: Stale and Orphaned Account Audit ─────────────────────────
+    ExecuteStaleAudit:
+        # Execute W1: Access Control - Stale and Orphaned Account Audit
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Access Control - Stale and Orphaned Account Audit
+            parameters:
+                user_upns: ${data['user_upns']}
+                identity_provider: ${data['identity_provider']}
+                inactivity_threshold_days: ${data['inactivity_threshold_days']}
+                tenant_id: ${data['tenant_id']}
+                client_id: ${data['client_id']}
+                client_secret: ${data['client_secret']}
+                run_stale_account_audit: ${data['run_stale_account_audit']}
+    # ── W2: Brute Force Detection ────────────────────────────────────
+    ExecuteBruteForce:
+        # Execute W2: Access Control - Brute Force Detection
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Access Control - Brute Force Detection
+            parameters:
+                user_upns: ${data['user_upns']}
+                tenant_id: ${data['tenant_id']}
+                client_id: ${data['client_id']}
+                client_secret: ${data['client_secret']}
+                lookback_hours: ${data['lookback_hours']}
+                failure_threshold: ${data['failure_threshold']}
+                run_brute_force_detection: ${data['run_brute_force_detection']}
+    # ── W3: Privilege Escalation Detection ───────────────────────────
+    ExecutePrivEsc:
+        # Execute W3: Access Control - Privilege Escalation Detection
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Access Control - Privilege Escalation Detection
+            parameters:
+                user_upns: ${data['user_upns']}
+                identity_provider: ${data['identity_provider']}
+                tenant_id: ${data['tenant_id']}
+                client_id: ${data['client_id']}
+                client_secret: ${data['client_secret']}
+                lookback_days: ${data['lookback_days']}
+                run_privilege_escalation_detection: ${data['run_privilege_escalation_detection']}
+    # ── W4: Credential Compromise Assessment ─────────────────────────
+    ExecuteCredAssessment:
+        # Execute W4: Access Control - Credential Compromise Assessment
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Access Control - Credential Compromise Assessment
+            parameters:
+                user_upns: ${data['user_upns']}
+                tenant_id: ${data['tenant_id']}
+                client_id: ${data['client_id']}
+                client_secret: ${data['client_secret']}
+                check_cs_identity_protection: ${data['check_cs_identity_protection']}
+                run_credential_assessment: ${data['run_credential_assessment']}
+    # ── W5: Suspicious Access Response ───────────────────────────────
+    ExecuteResponse:
+        # Execute W5: Access Control - Suspicious Access Response
+        # PLACEHOLDER_EXECUTE_WORKFLOW_ID — run: action_search.py --search "execute workflow"
+        id: PLACEHOLDER_EXECUTE_WORKFLOW_ID
+        name: Execute workflow
+        next:
+            - PrintSummary
+        properties:
+            workflow_name: Access Control - Suspicious Access Response
+            parameters:
+                response_actions: ${data['response_actions']}
+                identity_provider: ${data['identity_provider']}
+                dry_run: ${data['dry_run']}
+                case_id: ${data['case_id']}
+    # ── Summary ──────────────────────────────────────────────────────
+    PrintSummary:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        properties:
+            data: >-
+              ===== ACCESS CONTROL INVESTIGATION COMPLETE =====
+
+              Case ID: ${data['case_id']}
+
+              Sub-workflows executed (if enabled):
+                - W1: Stale and Orphaned Account Audit
+                - W2: Brute Force Detection
+                - W3: Privilege Escalation Detection
+                - W4: Credential Compromise Assessment
+                - W5: Suspicious Access Response
+
+              Review individual workflow results in the
+              Falcon console under Workflow Executions.
+
+              ================================================
+conditions:
+    # Gate W1: only run if stale account audit is enabled
+    check_stale:
+        next:
+            - ExecuteStaleAudit
+        cel_expression: data['run_stale_account_audit'] == true
+        display:
+            - Stale account audit is enabled
+    # Gate W2: only run if brute force detection is enabled
+    check_brute:
+        next:
+            - ExecuteBruteForce
+        cel_expression: data['run_brute_force_detection'] == true
+        display:
+            - Brute force detection is enabled
+    # Gate W3: only run if privilege escalation detection is enabled
+    check_privesc:
+        next:
+            - ExecutePrivEsc
+        cel_expression: data['run_privilege_escalation_detection'] == true
+        display:
+            - Privilege escalation detection is enabled
+    # Gate W4: only run if credential assessment is enabled
+    check_cred:
+        next:
+            - ExecuteCredAssessment
+        cel_expression: data['run_credential_assessment'] == true
+        display:
+            - Credential compromise assessment is enabled
+    # Gate W5: only run if response actions were provided
+    check_response:
+        next:
+            - ExecuteResponse
+        cel_expression: has(data['response_actions']) && size(data['response_actions']) > 0
+        display:
+            - Response actions provided for execution
+output_fields:
+    - PrintSummary.output

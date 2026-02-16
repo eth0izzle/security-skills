@@ -1,0 +1,180 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W5: Vulnerability Management - NIST Compliance Reporting
+# NIST CA-7, SI-5 — Generate compliance summary and optionally notify via Slack or email.
+# Template basis: assets/single-action.yaml (simple chain of Print + notifications)
+
+name: 'Vulnerability Management - NIST Compliance Reporting'
+description: >-
+  Generate a NIST 800-53 compliance summary report for the vulnerability
+  management workflow execution. Prints control coverage, vulnerability
+  statistics, and remediation metrics. Optionally sends notifications
+  via Slack or email.
+trigger:
+    next:
+        - PrintComplianceSummary
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            case_id:
+                type: string
+                title: Case ID
+                description: Unique identifier for this vulnerability management case.
+            total_hosts_assessed:
+                type: integer
+                title: Total Hosts Assessed
+                description: Number of hosts assessed for vulnerabilities.
+                default: 0
+            total_vulnerabilities:
+                type: integer
+                title: Total Vulnerabilities
+                description: Total number of vulnerabilities found.
+                default: 0
+            critical_count:
+                type: integer
+                title: Critical Count
+                description: Number of critical severity vulnerabilities.
+                default: 0
+            high_count:
+                type: integer
+                title: High Count
+                description: Number of high severity vulnerabilities.
+                default: 0
+            kev_count:
+                type: integer
+                title: KEV Count
+                description: Number of CISA KEV catalog vulnerabilities.
+                default: 0
+            hosts_contained:
+                type: integer
+                title: Hosts Contained
+                description: Number of hosts network-contained.
+                default: 0
+            hosts_tagged:
+                type: integer
+                title: Hosts Tagged
+                description: Number of hosts tagged for patching.
+                default: 0
+            tickets_created:
+                type: integer
+                title: Tickets Created
+                description: Number of tickets created in ticketing system.
+                default: 0
+            notification_channel:
+                type: string
+                title: Notification Channel
+                description: >-
+                  Channel for sending the compliance report notification.
+                  Use none to skip notifications.
+                enum:
+                    - slack
+                    - email
+                    - none
+                default: none
+            notification_target:
+                type: string
+                title: Notification Target
+                description: Slack channel name or email address for notifications.
+        required:
+            - case_id
+        type: object
+    type: On demand
+actions:
+    PrintComplianceSummary:
+        id: aadbf530e35fc452a032f5f8acaaac2a
+        name: Print data
+        next:
+            - check_notification
+        properties:
+            data: >-
+              ===== NIST 800-53 VULNERABILITY MANAGEMENT REPORT =====
+
+              Case ID: ${data['case_id']}
+
+              NIST Control Coverage:
+                RA-5 (Risk Assessment - Vulnerability Monitoring): ASSESSED
+                SI-2 (Flaw Remediation): ${data['hosts_tagged'] + data['hosts_contained']} hosts actioned
+                CM-8 (Information System Component Inventory): ${data['total_hosts_assessed']} hosts enriched
+                CA-7 (Continuous Monitoring): Report generated
+                SI-5 (Security Alerts and Advisories): ${data['kev_count']} CISA KEV findings
+
+              Vulnerability Summary:
+                Total Hosts Assessed: ${data['total_hosts_assessed']}
+                Total Vulnerabilities: ${data['total_vulnerabilities']}
+                Critical: ${data['critical_count']}
+                High: ${data['high_count']}
+                CISA KEV: ${data['kev_count']}
+
+              Remediation Summary:
+                Hosts Contained: ${data['hosts_contained']}
+                Hosts Tagged for Patching: ${data['hosts_tagged']}
+                Tickets Created: ${data['tickets_created']}
+
+              =====================================================
+    # ── Notification actions ────────────────────────────────────────
+    SendSlackNotification:
+        # PLACEHOLDER_SLACK_SEND_ID — run: action_search.py --search "slack"
+        # Plugin: Slack — Send message
+        id: PLACEHOLDER_SLACK_SEND_ID
+        name: Slack - Send message
+        properties:
+            config_id: PLACEHOLDER_CONFIG_ID
+            # To find config_id: Falcon console → CrowdStrike Store → Slack → Integration settings
+            params:
+                channel: ${data['notification_target']}
+                message: >-
+                  NIST 800-53 Vulnerability Management Report — Case
+                  ${data['case_id']}: ${data['total_vulnerabilities']}
+                  vulnerabilities found across
+                  ${data['total_hosts_assessed']} hosts.
+                  Critical: ${data['critical_count']}, High:
+                  ${data['high_count']}, CISA KEV:
+                  ${data['kev_count']}. Remediation:
+                  ${data['hosts_contained']} contained,
+                  ${data['hosts_tagged']} tagged,
+                  ${data['tickets_created']} tickets created.
+    SendEmailNotification:
+        # PLACEHOLDER_EMAIL_SEND_ID — run: action_search.py --search "email"
+        id: PLACEHOLDER_EMAIL_SEND_ID
+        name: Send email
+        properties:
+            to: ${data['notification_target']}
+            subject: "[VulnMgmt] NIST 800-53 Compliance Report — Case ${data['case_id']}"
+            body: >-
+              NIST 800-53 Vulnerability Management Report
+
+              Case ID: ${data['case_id']}
+
+              Vulnerability Summary:
+              Total Hosts Assessed: ${data['total_hosts_assessed']}
+              Total Vulnerabilities: ${data['total_vulnerabilities']}
+              Critical: ${data['critical_count']}
+              High: ${data['high_count']}
+              CISA KEV: ${data['kev_count']}
+
+              Remediation Summary:
+              Hosts Contained: ${data['hosts_contained']}
+              Hosts Tagged for Patching: ${data['hosts_tagged']}
+              Tickets Created: ${data['tickets_created']}
+conditions:
+    check_notification:
+        next:
+            - is_slack
+            - is_email
+        cel_expression: data['notification_channel'] != 'none'
+        display:
+            - Notification channel is configured
+    is_slack:
+        next:
+            - SendSlackNotification
+        cel_expression: data['notification_channel'] == 'slack'
+        display:
+            - Notification channel is Slack
+    is_email:
+        next:
+            - SendEmailNotification
+        cel_expression: data['notification_channel'] == 'email'
+        display:
+            - Notification channel is email
+output_fields:
+    - PrintComplianceSummary.output

@@ -1,0 +1,211 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W3: Access Control - Privilege Escalation Detection
+# Template basis: assets/loop.yaml + conditional (similar to W2 with provider routing)
+# NIST AC-6 — Detect unauthorized privilege escalation by querying identity
+# provider audit logs for role management events targeting specified users.
+# Requires Azure AD app with AuditLog.Read.All, Directory.Read.All permissions.
+
+name: 'Access Control - Privilege Escalation Detection'
+description: >-
+  For each user UPN, query the configured identity provider (Entra ID or Okta)
+  audit logs for role management and privilege change events. Flags
+  unauthorized role additions, admin escalations, and suspicious privilege
+  changes within the lookback window.
+trigger:
+    next:
+        - check_gate
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            user_upns:
+                items:
+                    type: string
+                type: array
+                title: User UPNs
+                description: >-
+                  List of user principal names (e.g. user@contoso.com) to
+                  check for privilege escalation events.
+                minItems: 1
+            identity_provider:
+                type: string
+                title: Identity Provider
+                description: >-
+                  Which identity provider to query for audit logs.
+                enum:
+                    - entra_id
+                    - okta
+                default: entra_id
+            tenant_id:
+                type: string
+                title: Azure AD Tenant ID
+                description: Azure AD tenant ID for Graph API authentication.
+            client_id:
+                type: string
+                title: Azure AD Client ID
+                description: Azure AD app registration client ID.
+            client_secret:
+                type: string
+                title: Azure AD Client Secret
+                description: Azure AD app registration client secret.
+            lookback_days:
+                type: integer
+                title: Lookback Days
+                description: >-
+                  Number of days to look back in audit logs for role changes.
+                  Defaults to 30.
+                default: 30
+            run_privilege_escalation_detection:
+                type: boolean
+                title: Run Privilege Escalation Detection
+                description: >-
+                  Gate flag — set to false to skip this workflow when called
+                  from the orchestrator.
+                default: true
+        required:
+            - user_upns
+            - tenant_id
+            - client_id
+            - client_secret
+        type: object
+    type: On demand
+actions:
+    GetGraphToken:
+        # HTTP action to acquire OAuth2 token from Azure AD
+        # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+        id: PLACEHOLDER_HTTP_ACTION_ID
+        name: HTTP request
+        next:
+            - Loop
+        properties:
+            url: https://login.microsoftonline.com/${data['tenant_id']}/oauth2/v2.0/token
+            method: POST
+            headers:
+                Content-Type: application/x-www-form-urlencoded
+            body: >-
+              grant_type=client_credentials&client_id=${data['client_id']}&client_secret=${data['client_secret']}&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default
+        version_constraint: ~1
+conditions:
+    check_gate:
+        next:
+            - GetGraphToken
+        cel_expression: data['run_privilege_escalation_detection'] == true
+        display:
+            - Privilege escalation detection is enabled
+loops:
+    Loop:
+        display: For each User UPNs; Sequentially
+        name: For each User UPNs; Sequentially
+        for:
+            input: user_upns
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - is_entra
+                    - is_okta
+                properties:
+                    variable_schema:
+                        properties:
+                            user_upn:
+                                type: string
+                            role_changes_found:
+                                type: integer
+                            unauthorized_changes:
+                                type: boolean
+                            changes_detail:
+                                type: string
+                        required:
+                            - user_upn
+                            - role_changes_found
+                            - unauthorized_changes
+                        type: object
+                version_constraint: ~1
+            # ── Entra ID branch ──────────────────────────────────────────
+            QueryEntraAuditLogs:
+                # HTTP GET to Graph API directory audit logs filtered by RoleManagement
+                # category and target user. Detects:
+                #   - Add member to role (admin escalation)
+                #   - Remove member from role (privilege removal)
+                #   - Update role (permission changes)
+                # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+                id: PLACEHOLDER_HTTP_ACTION_ID
+                name: HTTP request
+                next:
+                    - UpdateVariableEntra
+                properties:
+                    url: >-
+                      https://graph.microsoft.com/v1.0/auditLogs/directoryAudits?$filter=category eq 'RoleManagement' and targetResources/any(t: t/userPrincipalName eq '${data['user_upns.#']}')
+                    method: GET
+                    headers:
+                        Authorization: Bearer ${data['GetGraphToken.access_token']}
+                        Content-Type: application/json
+                version_constraint: ~1
+            UpdateVariableEntra:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - Entra ID
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        role_changes_found: ${data['QueryEntraAuditLogs.body']}
+                        unauthorized_changes: false
+                        changes_detail: ${data['QueryEntraAuditLogs.body']}
+                version_constraint: ~1
+            # ── Okta branch ──────────────────────────────────────────────
+            QueryOktaSystemLog:
+                # HTTP GET to Okta System Log for role-change events.
+                # Filters for user.account.privilege.grant and
+                # group.user_membership.add events targeting the user.
+                # Replace PLACEHOLDER_OKTA_DOMAIN with your Okta org domain.
+                # PLACEHOLDER_HTTP_ACTION_ID — run: action_search.py --search "http request"
+                id: PLACEHOLDER_HTTP_ACTION_ID
+                name: HTTP request
+                next:
+                    - UpdateVariableOkta
+                properties:
+                    url: >-
+                      https://PLACEHOLDER_OKTA_DOMAIN/api/v1/logs?filter=actor.alternateId eq "${data['user_upns.#']}" and eventType eq "user.account.privilege.grant"
+                    method: GET
+                    headers:
+                        Authorization: SSWS PLACEHOLDER_OKTA_API_TOKEN
+                        Content-Type: application/json
+                version_constraint: ~1
+            UpdateVariableOkta:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - Okta
+                properties:
+                    WorkflowCustomVariable:
+                        user_upn: ${data['user_upns.#']}
+                        role_changes_found: ${data['QueryOktaSystemLog.body']}
+                        unauthorized_changes: false
+                        changes_detail: ${data['QueryOktaSystemLog.body']}
+                version_constraint: ~1
+        conditions:
+            is_entra:
+                next:
+                    - QueryEntraAuditLogs
+                cel_expression: data['identity_provider'] == 'entra_id'
+                display:
+                    - Identity provider is Entra ID
+            is_okta:
+                next:
+                    - QueryOktaSystemLog
+                cel_expression: data['identity_provider'] == 'okta'
+                display:
+                    - Identity provider is Okta
+        output_fields:
+            - WorkflowCustomVariable.user_upn
+            - WorkflowCustomVariable.role_changes_found
+            - WorkflowCustomVariable.unauthorized_changes
+            - WorkflowCustomVariable.changes_detail
+output_fields:
+    - Loop.output

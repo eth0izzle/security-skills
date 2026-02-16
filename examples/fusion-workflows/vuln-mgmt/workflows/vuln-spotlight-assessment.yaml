@@ -1,0 +1,123 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W1: Vulnerability Management - Spotlight Assessment
+# NIST RA-5, CA-7 — Query Spotlight vulnerabilities for each host.
+# Template basis: assets/loop.yaml
+
+name: 'Vulnerability Management - Spotlight Assessment'
+description: >-
+  For each CrowdStrike host ID, query Spotlight for known vulnerabilities
+  and record CVE counts by severity. Optionally filters to CISA KEV
+  catalog entries only. Supports severity-based filtering (Critical, High,
+  Medium, or All).
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            host_ids:
+                items:
+                    type: string
+                type: array
+                title: Host IDs
+                description: CrowdStrike host/device IDs to assess.
+                minItems: 1
+            cve_severity_filter:
+                type: string
+                title: CVE Severity Filter
+                description: Minimum CVE severity to include in results.
+                enum:
+                    - Critical
+                    - High
+                    - Medium
+                    - All
+                default: All
+            include_kev_only:
+                type: boolean
+                title: Include KEV Only
+                description: >-
+                  If true, only return CVEs present in the CISA Known
+                  Exploited Vulnerabilities (KEV) catalog.
+                default: false
+            case_id:
+                type: string
+                title: Case ID
+                description: Optional case ID for tracking.
+        required:
+            - host_ids
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each Host IDs; Sequentially
+        name: For each Host IDs; Sequentially
+        for:
+            input: host_ids
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - QuerySpotlight
+                properties:
+                    variable_schema:
+                        properties:
+                            host_id:
+                                type: string
+                            cve_count:
+                                type: integer
+                            critical_count:
+                                type: integer
+                            high_count:
+                                type: integer
+                            kev_count:
+                                type: integer
+                            vulnerabilities:
+                                type: string
+                        required:
+                            - host_id
+                            - cve_count
+                            - critical_count
+                            - high_count
+                            - kev_count
+                        type: object
+                version_constraint: ~1
+            QuerySpotlight:
+                # PLACEHOLDER_SPOTLIGHT_QUERY_ID — run: action_search.py --search "spotlight"
+                id: PLACEHOLDER_SPOTLIGHT_QUERY_ID
+                name: Query Spotlight vulnerabilities
+                next:
+                    - UpdateVariable
+                properties:
+                    host_id: ${data['host_ids.#']}
+                    severity_filter: ${data['cve_severity_filter']}
+                version_constraint: ~1
+            UpdateVariable:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable
+                properties:
+                    WorkflowCustomVariable:
+                        host_id: ${data['host_ids.#']}
+                        cve_count: ${data['QuerySpotlight.Count']}
+                        critical_count: ${data['QuerySpotlight.CriticalCount']}
+                        high_count: ${data['QuerySpotlight.HighCount']}
+                        kev_count: ${data['QuerySpotlight.KEVCount']}
+                        vulnerabilities: ${data['QuerySpotlight.Vulnerabilities']}
+                version_constraint: ~1
+        output_fields:
+            - WorkflowCustomVariable.host_id
+            - WorkflowCustomVariable.cve_count
+            - WorkflowCustomVariable.critical_count
+            - WorkflowCustomVariable.high_count
+            - WorkflowCustomVariable.kev_count
+            - WorkflowCustomVariable.vulnerabilities
+output_fields:
+    - Loop.output

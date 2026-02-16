@@ -1,0 +1,100 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W3: Ransomware - Endpoint Containment
+# NIST SC-7, IR-4 — Network-contain compromised devices to stop lateral movement.
+# Template basis: assets/loop.yaml (near-clone of BEC W7)
+
+name: 'Ransomware - Endpoint Containment'
+description: >-
+  Network-contain one or more CrowdStrike-managed devices as part of
+  ransomware incident response. Loops over device IDs, contains each device,
+  and records per-device results. Containment note references the ransomware
+  case for audit trail.
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            device_ids:
+                items:
+                    type: string
+                type: array
+                title: Device IDs
+                description: >-
+                  CrowdStrike host/device IDs to contain (e.g. from
+                  ThreatGraph or IOC sweep results).
+                minItems: 1
+            containment_note:
+                type: string
+                title: Containment Note
+                description: >-
+                  Justification or ticket reference for the containment
+                  action (attached to each device).
+            case_id:
+                type: string
+                title: Case ID
+                description: Ransomware case ID for tracking.
+        required:
+            - device_ids
+            - containment_note
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each Device IDs; Sequentially
+        name: For each Device IDs; Sequentially
+        for:
+            input: device_ids
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    # PLACEHOLDER_CONTAIN_DEVICE — run: action_search.py --search "contain"
+                    - ContainDevice
+                properties:
+                    variable_schema:
+                        properties:
+                            device_id:
+                                type: string
+                            contained:
+                                type: boolean
+                            error:
+                                type: string
+                        required:
+                            - device_id
+                            - contained
+                        type: object
+                version_constraint: ~1
+            ContainDevice:
+                # PLACEHOLDER_CONTAIN_DEVICE_ID — run: action_search.py --search "contain"
+                id: PLACEHOLDER_CONTAIN_DEVICE_ID
+                name: Contain device
+                next:
+                    - UpdateVariable
+                properties:
+                    device_id: ${data['device_ids.#']}
+                    note: ${data['containment_note']}
+            UpdateVariable:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable
+                properties:
+                    WorkflowCustomVariable:
+                        device_id: ${data['device_ids.#']}
+                        contained: true
+                        error: ""
+                version_constraint: ~1
+        output_fields:
+            - WorkflowCustomVariable.device_id
+            - WorkflowCustomVariable.contained
+            - WorkflowCustomVariable.error
+output_fields:
+    - Loop.output

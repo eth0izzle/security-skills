@@ -25,6 +25,8 @@ Your CrowdStrike API client needs these scopes:
 |-------|------------|----------|
 | Workflow | Read, Write | All operations (discover, validate, import, execute, export) |
 
+You can minimise risk by creating a readonly key without execution, import, and export permissions.
+
 ## Setup
 
 ### 1. Install the skill

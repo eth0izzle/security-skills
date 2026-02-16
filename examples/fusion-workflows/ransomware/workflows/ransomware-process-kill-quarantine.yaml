@@ -1,0 +1,188 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W4: Ransomware - RTR Process Kill and File Quarantine
+# NIST SI-3, IR-4 — Use Real Time Response to kill malicious processes and quarantine files.
+# Template basis: assets/loop.yaml + conditional (novel RTR workflow)
+
+name: 'Ransomware - RTR Process Kill and File Quarantine'
+description: >-
+  Use CrowdStrike Real Time Response (RTR) to kill malicious processes and
+  quarantine suspicious files on compromised endpoints. Loops over target
+  devices, initiates an RTR session for each, then conditionally kills
+  a process and/or quarantines a file based on provided parameters.
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            targets:
+                items:
+                    properties:
+                        device_id:
+                            type: string
+                            title: Device ID
+                            description: CrowdStrike host/device ID to connect to via RTR.
+                        process_name:
+                            type: string
+                            title: Process Name
+                            description: >-
+                              Optional name of the malicious process to kill
+                              (e.g. ransomware.exe).
+                        file_path:
+                            type: string
+                            title: File Path
+                            description: >-
+                              Optional full path of the file to quarantine
+                              (e.g. C:\Users\Public\payload.exe).
+                    required:
+                        - device_id
+                    type: object
+                type: array
+                title: Targets
+                description: >-
+                  List of target devices with optional process names to kill
+                  and file paths to quarantine.
+                minItems: 1
+            auto_rtr:
+                type: boolean
+                title: Auto RTR
+                description: >-
+                  If true, automatically initiate RTR sessions and execute
+                  remediation actions. Defaults to true.
+                default: true
+            case_id:
+                type: string
+                title: Case ID
+                description: Ransomware case ID for tracking.
+        required:
+            - targets
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each Targets; Sequentially
+        name: For each Targets; Sequentially
+        for:
+            input: targets
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - RTRInitSession
+                properties:
+                    variable_schema:
+                        properties:
+                            device_id:
+                                type: string
+                            session_started:
+                                type: boolean
+                            process_killed:
+                                type: boolean
+                            file_quarantined:
+                                type: boolean
+                            error:
+                                type: string
+                        required:
+                            - device_id
+                            - session_started
+                            - process_killed
+                            - file_quarantined
+                        type: object
+                version_constraint: ~1
+            RTRInitSession:
+                # PLACEHOLDER_RTR_INIT_SESSION_ID — run: action_search.py --search "RTR - Init session"
+                id: PLACEHOLDER_RTR_INIT_SESSION_ID
+                name: RTR - Init session
+                next:
+                    - has_process
+                    - has_file
+                properties:
+                    device_id: ${data['targets.#.device_id']}
+                version_constraint: ~1
+            RTRKillProcess:
+                # PLACEHOLDER_RTR_KILL_PROCESS_ID — run: action_search.py --search "RTR - Kill process"
+                id: PLACEHOLDER_RTR_KILL_PROCESS_ID
+                name: RTR - Kill process
+                next:
+                    - UpdateVariableProcess
+                properties:
+                    session_id: ${data['RTRInitSession.session_id']}
+                    process_name: ${data['targets.#.process_name']}
+                version_constraint: ~1
+            UpdateVariableProcess:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - process killed
+                properties:
+                    WorkflowCustomVariable:
+                        device_id: ${data['targets.#.device_id']}
+                        session_started: true
+                        process_killed: true
+                        file_quarantined: false
+                        error: ""
+                version_constraint: ~1
+            RTRQuarantineFile:
+                # PLACEHOLDER_RTR_QUARANTINE_FILE_ID — run: action_search.py --search "RTR - Quarantine file"
+                id: PLACEHOLDER_RTR_QUARANTINE_FILE_ID
+                name: RTR - Quarantine file
+                next:
+                    - UpdateVariableFile
+                properties:
+                    session_id: ${data['RTRInitSession.session_id']}
+                    file_path: ${data['targets.#.file_path']}
+                version_constraint: ~1
+            UpdateVariableFile:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - file quarantined
+                properties:
+                    WorkflowCustomVariable:
+                        device_id: ${data['targets.#.device_id']}
+                        session_started: true
+                        process_killed: false
+                        file_quarantined: true
+                        error: ""
+                version_constraint: ~1
+            UpdateVariableSessionOnly:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - session only
+                properties:
+                    WorkflowCustomVariable:
+                        device_id: ${data['targets.#.device_id']}
+                        session_started: true
+                        process_killed: false
+                        file_quarantined: false
+                        error: ""
+                version_constraint: ~1
+        conditions:
+            has_process:
+                next:
+                    - RTRKillProcess
+                cel_expression: has(data['targets.#.process_name']) && data['targets.#.process_name'] != ''
+                display:
+                    - Process name provided for this target
+                else:
+                    - UpdateVariableSessionOnly
+            has_file:
+                next:
+                    - RTRQuarantineFile
+                cel_expression: has(data['targets.#.file_path']) && data['targets.#.file_path'] != ''
+                display:
+                    - File path provided for this target
+        output_fields:
+            - WorkflowCustomVariable.device_id
+            - WorkflowCustomVariable.session_started
+            - WorkflowCustomVariable.process_killed
+            - WorkflowCustomVariable.file_quarantined
+            - WorkflowCustomVariable.error
+output_fields:
+    - Loop.output

@@ -1,0 +1,202 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# W4: Vulnerability Management - Host Remediation Actions
+# NIST SI-2 — Contain devices, apply patching tags, or run RTR patch checks.
+# Template basis: assets/loop.yaml + conditional
+
+name: 'Vulnerability Management - Host Remediation Actions'
+description: >-
+  Execute remediation actions on vulnerable hosts. Supports three action
+  types: network containment for critical findings, applying Falcon
+  Grouping Tags for patch management, and RTR session initiation for
+  patch verification. Gated by auto_contain_critical or
+  auto_tag_for_patching parameters.
+trigger:
+    next:
+        - Loop
+    name: On demand
+    parameters:
+        $schema: https://json-schema.org/draft-07/schema
+        properties:
+            host_actions:
+                items:
+                    properties:
+                        host_id:
+                            type: string
+                            title: Host ID
+                            description: CrowdStrike host/device ID.
+                        action_type:
+                            type: string
+                            title: Action Type
+                            description: Remediation action to perform on this host.
+                            enum:
+                                - contain
+                                - tag_for_patching
+                                - rtr_patch_check
+                        priority:
+                            type: string
+                            title: Priority
+                            description: Priority level for this remediation action.
+                    required:
+                        - host_id
+                        - action_type
+                    type: object
+                type: array
+                title: Host Actions
+                description: >-
+                  List of remediation actions to execute. Each item includes
+                  host_id, action_type (contain/tag_for_patching/rtr_patch_check),
+                  and priority.
+                minItems: 1
+            auto_contain_critical:
+                type: boolean
+                title: Auto Contain Critical
+                description: >-
+                  If true, allow network containment actions for critical
+                  findings. Defaults to false.
+                default: false
+            auto_tag_for_patching:
+                type: boolean
+                title: Auto Tag for Patching
+                description: >-
+                  If true, allow applying Falcon Grouping Tags for patch
+                  management. Defaults to false.
+                default: false
+            case_id:
+                type: string
+                title: Case ID
+                description: Optional case ID for tracking.
+        required:
+            - host_actions
+        type: object
+    type: On demand
+loops:
+    Loop:
+        display: For each Host Actions; Sequentially
+        name: For each Host Actions; Sequentially
+        for:
+            input: host_actions
+            continue_on_partial_execution: false
+            sequential: true
+        trigger:
+            next:
+                - CreateVariable
+        actions:
+            CreateVariable:
+                id: 702d15788dbbffdf0b68d8e2f3599aa4
+                class: CreateVariable
+                name: Create variable
+                next:
+                    - is_contain
+                    - is_tag
+                    - is_rtr_check
+                properties:
+                    variable_schema:
+                        properties:
+                            host_id:
+                                type: string
+                            action_type:
+                                type: string
+                            action_completed:
+                                type: boolean
+                            tag_applied:
+                                type: string
+                            error:
+                                type: string
+                        required:
+                            - host_id
+                            - action_type
+                            - action_completed
+                        type: object
+                version_constraint: ~1
+            # ── Contain device branch ───────────────────────────────────
+            ContainDevice:
+                # PLACEHOLDER_CONTAIN_DEVICE_ID — run: action_search.py --search "contain"
+                id: PLACEHOLDER_CONTAIN_DEVICE_ID
+                name: Contain device
+                next:
+                    - UpdateVariableContain
+                properties:
+                    device_id: ${data['host_actions.#.host_id']}
+                    note: "VulnMgmt Case ${data['case_id']} - critical vulnerability containment"
+            UpdateVariableContain:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - contain
+                properties:
+                    WorkflowCustomVariable:
+                        host_id: ${data['host_actions.#.host_id']}
+                        action_type: contain
+                        action_completed: true
+                        tag_applied: ""
+                        error: ""
+                version_constraint: ~1
+            # ── Apply grouping tag branch ───────────────────────────────
+            ApplyGroupingTag:
+                # PLACEHOLDER_APPLY_TAG_ID — run: action_search.py --search "tag"
+                id: PLACEHOLDER_APPLY_TAG_ID
+                name: Apply Falcon Grouping Tag
+                next:
+                    - UpdateVariableTag
+                properties:
+                    device_id: ${data['host_actions.#.host_id']}
+                    tag: VulnResponse/PatchRequired
+            UpdateVariableTag:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - tag
+                properties:
+                    WorkflowCustomVariable:
+                        host_id: ${data['host_actions.#.host_id']}
+                        action_type: tag_for_patching
+                        action_completed: true
+                        tag_applied: VulnResponse/PatchRequired
+                        error: ""
+                version_constraint: ~1
+            # ── RTR patch check branch ──────────────────────────────────
+            RTRPatchCheck:
+                # PLACEHOLDER_RTR_INIT_SESSION_ID — run: action_search.py --search "rtr"
+                id: PLACEHOLDER_RTR_INIT_SESSION_ID
+                name: RTR - Init session
+                next:
+                    - UpdateVariableRTR
+                properties:
+                    device_id: ${data['host_actions.#.host_id']}
+            UpdateVariableRTR:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update variable - RTR
+                properties:
+                    WorkflowCustomVariable:
+                        host_id: ${data['host_actions.#.host_id']}
+                        action_type: rtr_patch_check
+                        action_completed: true
+                        tag_applied: ""
+                        error: ""
+                version_constraint: ~1
+        conditions:
+            is_contain:
+                next:
+                    - ContainDevice
+                cel_expression: data['host_actions.#.action_type'] == 'contain'
+                display:
+                    - Action type is contain
+            is_tag:
+                next:
+                    - ApplyGroupingTag
+                cel_expression: data['host_actions.#.action_type'] == 'tag_for_patching'
+                display:
+                    - Action type is tag for patching
+            is_rtr_check:
+                next:
+                    - RTRPatchCheck
+                cel_expression: data['host_actions.#.action_type'] == 'rtr_patch_check'
+                display:
+                    - Action type is RTR patch check
+        output_fields:
+            - WorkflowCustomVariable.host_id
+            - WorkflowCustomVariable.action_type
+            - WorkflowCustomVariable.action_completed
+            - WorkflowCustomVariable.tag_applied
+            - WorkflowCustomVariable.error
+output_fields:
+    - Loop.output

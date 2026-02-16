@@ -1,6 +1,11 @@
 # Template: Conditional workflow (trigger → loop → condition → branches)
-# Replace all PLACEHOLDER_ values before importing.
 # Demonstrates both CEL expression and simple expression conditions with else.
+#
+# WARNING: This template uses PLACEHOLDER_ markers to show YAML structure only.
+# Do NOT copy PLACEHOLDER_ values into your workflow YAML.
+# - Action IDs: MUST be resolved via action_search.py BEFORE writing YAML
+# - config_id: MUST be obtained from the user (CID-specific)
+# - Names/labels/params: Choose your own descriptive values
 
 name: 'PLACEHOLDER_WORKFLOW_NAME'
 description: PLACEHOLDER_WORKFLOW_DESCRIPTION
