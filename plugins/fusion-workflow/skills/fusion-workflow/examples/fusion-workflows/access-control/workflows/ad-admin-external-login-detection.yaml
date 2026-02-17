@@ -1,0 +1,61 @@
+# Created by https://github.com/eth0izzle/security-skills/
+# AD Admin External Login Detection
+# Scheduled hourly workflow that queries LogScale for Domain Admin logins
+# originating from IPs outside the corporate range 84.23.145.0/24 and
+# emails the SOC team when anomalous logins are detected.
+
+name: 'AD Admin External Login Detection'
+description: >-
+  Runs on an hourly schedule to detect Domain Admin logins from IPs outside
+  the corporate network (84.23.145.0/24). Queries CrowdStrike LogScale for
+  UserLogon events where UserIsAdmin is set and the source IP is external,
+  then sends an email alert to the SOC team with login details.
+trigger:
+    next:
+        - EventQuery
+    name: Scheduled
+    type: Scheduled
+    schedule:
+        cron: "0 * * * *"
+        timezone: UTC
+actions:
+    EventQuery:
+        id: cdf5c3e0d69f156eaaf56c1f5d3f1b66
+        class: Inline.QueryEvent
+        name: Workflow-specific event query
+        next:
+            - check_results
+        properties:
+            query_string: >-
+              #event_simpleName=UserLogon
+              | UserIsAdmin_decimal=1
+              | RemoteAddressIP4=*
+              | RemoteAddressIP4!=84.23.145.*
+              | groupBy([UserName, RemoteAddressIP4, ComputerName], function=count(aid))
+            logscale_search_start_time: "65 min"
+            logscale_search_end_time: "now"
+        version_constraint: ~1
+    SendEmail:
+        id: 07413ef9ba7c47bf5a242799f59902cc
+        name: Send email
+        properties:
+            to: SOC_TEAM_EMAIL@example.com
+            subject: "[Alert] Domain Admin Login from External IP Detected"
+            msg: >-
+              Domain Admin logins from IPs outside 84.23.145.0/24 were detected
+              in the last 65 minutes.
+
+              Event count: ${data['EventQuery.event_count']}
+
+              Review the attached results for UserName, source IP, and host details.
+              Investigate immediately if these logins are unexpected.
+            msg_type: text
+            file_attachment: ${data['EventQuery.file_info']}
+conditions:
+    check_results:
+        next:
+            - SendEmail
+        cel_expression: int(data['EventQuery.event_count']) > 0
+        display:
+            - Event query returned results
+output_fields: []

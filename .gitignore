@@ -1,3 +1,5 @@
 .env
 .gitattributes
 .git/
+**/.action_cache.json
+__pycache__/

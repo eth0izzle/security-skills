@@ -1,0 +1,26 @@
+{
+  "name": "security-skills",
+  "owner": {
+    "name": "Paul Price",
+    "email": "paul@darkport.co.uk"
+  },
+  "metadata": {
+    "description": "Skills that automate security operations with Claude Code. Each skill encodes domain-specific security knowledge across your security stack.",
+    "version": "1.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "fusion-workflow",
+      "source": "./fusion-workflow",
+      "description": "Create, validate, import, execute, and export CrowdStrike Falcon Fusion SOAR workflows using natural language.",
+      "version": "1.0.0",
+      "author": { "name": "Paul Price" },
+      "homepage": "https://darkport.co.uk",
+      "repository": "https://github.com/eth0izzle/security-skills",
+      "license": "MIT",
+      "keywords": ["crowdstrike", "falcon", "fusion", "soar", "workflow", "security"],
+      "category": "security"
+    }
+  ]
+}
