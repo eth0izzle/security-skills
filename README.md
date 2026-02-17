@@ -8,7 +8,7 @@ Install individual skills to automate specific platforms, or combine several for
 
 | Skill | Platform | What It Does |
 |-------|----------|--------------|
-| [fusion-workflow](plugins/fusion-workflow/skills/fusion-workflow/) | CrowdStrike Falcon Fusion SOAR | Create, validate, import, execute, and export Fusion SOAR workflows. Discovers actions via the live API, authors YAML with correct schema and data references, handles CEL expressions, loop/conditional patterns, and manages the full workflow lifecycle. |
+| [fusion-workflows](plugins/fusion-workflows/skills/fusion-workflows/) | CrowdStrike Falcon Fusion SOAR | Create, validate, import, execute, and export Fusion SOAR workflows. Discovers actions via the live API, authors YAML with correct schema and data references, handles CEL expressions, loop/conditional patterns, and manages the full workflow lifecycle. |
 
 *More skills coming soon.*
 
@@ -81,7 +81,7 @@ To add a new security skill:
 8. Register the plugin in `.claude-plugin/marketplace.json`
 9. Submit a pull request
 
-See the [fusion-workflow skill](plugins/fusion-workflow/skills/fusion-workflow/SKILL.md) as a reference implementation.
+See the [fusion-workflows skill](plugins/fusion-workflows/skills/fusion-workflows/SKILL.md) as a reference implementation.
 
 ## License
 

@@ -6,13 +6,12 @@
   },
   "metadata": {
     "description": "Skills that automate security operations with Claude Code. Each skill encodes domain-specific security knowledge across your security stack.",
-    "version": "1.0.0",
-    "pluginRoot": "./plugins"
+    "version": "1.0.0"
   },
   "plugins": [
     {
-      "name": "fusion-workflow",
-      "source": "./fusion-workflow",
+      "name": "fusion-workflows",
+      "source": "./plugins/fusion-workflows",
       "description": "Create, validate, import, execute, and export CrowdStrike Falcon Fusion SOAR workflows using natural language.",
       "version": "1.0.0",
       "author": { "name": "Paul Price" },
