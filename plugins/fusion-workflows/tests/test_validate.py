@@ -1,6 +1,32 @@
-"""Tests for validate.py — preflight checks (no API calls needed)."""
+"""Tests for validate.py — preflight and structural checks (no API calls needed)."""
 
 import validate
+
+
+VALID_WORKFLOW = """\
+# Created by https://github.com/eth0izzle/security-skills/
+name: Test Workflow
+trigger:
+  type: On demand
+  name: On demand
+  next:
+    - ContainHost
+  parameters:
+    $schema: https://json-schema.org/draft-07/schema
+    properties:
+      device_id:
+        type: string
+    required:
+      - device_id
+    type: object
+actions:
+  ContainHost:
+    id: aabbccdd11223344aabbccdd11223344
+    name: Contain device
+    properties:
+      device_id: ${data['device_id']}
+output_fields: []
+"""
 
 
 class TestPreflightCheck:
@@ -72,3 +98,184 @@ class TestValidateFile:
         passed, messages = validate.validate_file(str(f), preflight_only=False)
         assert passed is False
         assert any("fix errors" in m.lower() for m in messages)
+
+
+class TestStructuralCheck:
+    """Test YAML structural validation rules."""
+
+    def test_valid_workflow_passes(self, tmp_path):
+        f = tmp_path / "good.yaml"
+        f.write_text(VALID_WORKFLOW)
+        issues = validate.structural_check(str(f))
+        assert issues == []
+
+    def test_invalid_action_id_not_hex(self, tmp_path):
+        f = tmp_path / "bad_id.yaml"
+        f.write_text(VALID_WORKFLOW.replace(
+            "aabbccdd11223344aabbccdd11223344", "not-a-valid-hex-id-at-all!!"
+        ))
+        issues = validate.structural_check(str(f))
+        assert any("invalid id" in i.lower() for i in issues)
+
+    def test_invalid_action_id_wrong_length(self, tmp_path):
+        f = tmp_path / "short_id.yaml"
+        f.write_text(VALID_WORKFLOW.replace(
+            "aabbccdd11223344aabbccdd11223344", "aabbccdd1122"
+        ))
+        issues = validate.structural_check(str(f))
+        assert any("invalid id" in i.lower() for i in issues)
+
+    def test_missing_action_id(self, tmp_path):
+        f = tmp_path / "no_id.yaml"
+        content = """\
+# Header
+name: Test
+trigger:
+  type: On demand
+  next:
+    - MyAction
+actions:
+  MyAction:
+    name: Some action
+    properties:
+      key: value
+"""
+        f.write_text(content)
+        issues = validate.structural_check(str(f))
+        assert any("missing required 'id'" in i.lower() for i in issues)
+
+    def test_missing_action_name(self, tmp_path):
+        f = tmp_path / "no_name.yaml"
+        content = """\
+# Header
+name: Test
+trigger:
+  type: On demand
+  next:
+    - MyAction
+actions:
+  MyAction:
+    id: aabbccdd11223344aabbccdd11223344
+    properties:
+      key: value
+"""
+        f.write_text(content)
+        issues = validate.structural_check(str(f))
+        assert any("missing required 'name'" in i.lower() for i in issues)
+
+    def test_missing_version_constraint(self, tmp_path):
+        f = tmp_path / "no_vc.yaml"
+        content = """\
+# Header
+name: Test
+trigger:
+  type: On demand
+  next:
+    - CreateVariable
+actions:
+  CreateVariable:
+    id: 702d15788dbbffdf0b68d8e2f3599aa4
+    class: CreateVariable
+    name: Create variable
+    properties:
+      variable_schema:
+        properties:
+          item:
+            type: string
+        type: object
+"""
+        f.write_text(content)
+        issues = validate.structural_check(str(f))
+        assert any("version_constraint" in i for i in issues)
+
+    def test_invalid_trigger_type(self, tmp_path):
+        f = tmp_path / "bad_trigger.yaml"
+        f.write_text(VALID_WORKFLOW.replace("type: On demand", "type: Invalid"))
+        issues = validate.structural_check(str(f))
+        assert any("invalid trigger type" in i.lower() for i in issues)
+
+    def test_unresolved_next_reference(self, tmp_path):
+        f = tmp_path / "bad_next.yaml"
+        content = """\
+# Header
+name: Test
+trigger:
+  type: On demand
+  next:
+    - ContainHost
+actions:
+  ContainHost:
+    id: aabbccdd11223344aabbccdd11223344
+    name: Contain device
+    next:
+      - NonExistentAction
+    properties:
+      device_id: ${data['device_id']}
+"""
+        f.write_text(content)
+        issues = validate.structural_check(str(f))
+        assert any("NonExistentAction" in i for i in issues)
+
+    def test_loop_input_references_param(self, tmp_path):
+        f = tmp_path / "bad_loop.yaml"
+        content = """\
+# Header
+name: Test
+trigger:
+  type: On demand
+  next:
+    - Loop
+  parameters:
+    $schema: https://json-schema.org/draft-07/schema
+    properties:
+      device_id:
+        type: string
+    required:
+      - device_id
+    type: object
+loops:
+  Loop:
+    name: For each item
+    for:
+      input: nonexistent_param
+      sequential: true
+    trigger:
+      next:
+        - DoStuff
+    actions:
+      DoStuff:
+        id: aabbccdd11223344aabbccdd11223344
+        name: Do stuff
+        properties:
+          key: value
+output_fields: []
+"""
+        f.write_text(content)
+        issues = validate.structural_check(str(f))
+        assert any("nonexistent_param" in i for i in issues)
+
+    def test_yaml_parse_error(self, tmp_path):
+        f = tmp_path / "invalid.yaml"
+        f.write_text(":\n  - [\ninvalid yaml content {{{\n")
+        issues = validate.structural_check(str(f))
+        assert any("parse error" in i.lower() for i in issues)
+
+    def test_structural_errors_block_api(self, tmp_path):
+        f = tmp_path / "struct_bad.yaml"
+        content = """\
+# Header
+name: Test
+trigger:
+  type: On demand
+  next:
+    - MyAction
+actions:
+  MyAction:
+    name: Missing ID action
+    properties:
+      key: value
+"""
+        f.write_text(content)
+        passed, messages = validate.validate_file(str(f), preflight_only=False)
+        assert passed is False
+        assert any("structural validation failed" in m.lower() for m in messages)
