@@ -1,0 +1,111 @@
+{
+  "name": "PAN NGFW - Unregister IP from Tag (DAG)",
+  "description": "Unregisters an IP address from a tag on a PAN NGFW firewall via the User-ID API, removing it from any Dynamic Address Group (DAG) that matches that tag. Use this to lift containment or blocklist enforcement previously applied through DAG tagging.",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "FROM_trigger_TO_UnregisterIPFromTag",
+      "parameters": {
+        "properties": {
+          "FirewallIP": {
+            "type": "string",
+            "description": "IP address or hostname of the PAN NGFW management interface"
+          },
+          "TagName": {
+            "type": "string",
+            "description": "Tag to remove the IP from (e.g. malicious) \u2014 must match the tag used when the IP was registered"
+          },
+          "TargetIP": {
+            "type": "string",
+            "description": "IP address to unregister from the tag (e.g. 10.1.1.1)"
+          }
+        },
+        "required": [
+          "FirewallIP",
+          "TagName",
+          "TargetIP"
+        ],
+        "type": "object"
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "FROM_trigger_TO_UnregisterIPFromTag": {
+        "source": "trigger",
+        "target": "UnregisterIPFromTag",
+        "condition": {}
+      },
+      "flow_72202497-e758-4a72-8034-2ddd7c633463": {
+        "source": "UnregisterIPFromTag",
+        "target": "end",
+        "condition": {}
+      }
+    },
+    "activities": {
+      "UnregisterIPFromTag": {
+        "id": "50b8a7cc77ea4ebb9d0bbe96d8def095",
+        "class": "Inline.HTTPRequest",
+        "name": "Unregister IP From Tag",
+        "flows": {
+          "incoming": "FROM_trigger_TO_UnregisterIPFromTag",
+          "outgoing": "flow_72202497-e758-4a72-8034-2ddd7c633463"
+        },
+        "properties": {
+          "authentication_option": "UseExisting",
+          "definition_id": "31fd9a5893df4127b93f9d27e80a1ea9",
+          "deployment_model": "on_prem",
+          "host_group_id": "4775ad67cafd4edb90aa9d250678c871",
+          "http_transaction": {
+            "request_body": "{}",
+            "request_content_type": "JSON",
+            "request_headers": {},
+            "request_http_method": "POST",
+            "request_query": {
+              "1e79e667-45ce-4bb6-90c0-3d8082954b35": {
+                "name": "type",
+                "value": "user-id"
+              },
+              "893e0c8b-a8bb-42c2-bd60-2413e99ef28d": {
+                "name": "cmd",
+                "value": "<uid-message><version>1.0</version><type>update</type><payload><unregister><entry ip=\"${data['TargetIP']}\"><tag><member>${data['TagName']}</member></tag></entry></unregister></payload></uid-message>"
+              }
+            },
+            "request_url": "https://${data['FirewallIP']}/api",
+            "response_body": "",
+            "response_status_code": 200
+          },
+          "insecure_skip_verify": true
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_72202497-e758-4a72-8034-2ddd7c633463"
+      ]
+    }
+  },
+  "use_cases": [
+    "Network security"
+  ],
+  "vendors": [
+    "CrowdStrike",
+    "Palo Alto Networks"
+  ],
+  "complexity": 1,
+  "trigger_type": "On demand",
+  "id": "19d8600ae7074f5ea5c8e1e565e5e48e",
+  "version": "0.208.0",
+  "created_timestamp": "2026-04-17T10:44:29.24425138Z",
+  "last_modified_timestamp": "2026-04-17T10:44:32.246373656Z",
+  "activities": [
+    {
+      "id": "50b8a7cc77ea4ebb9d0bbe96d8def095",
+      "name": "On-Premises HTTP Request"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

@@ -1,0 +1,1073 @@
+{
+  "name": "Domain Enrichment VirusTotal",
+  "description": "Enriches domains with threat intelligence data from VirusTotal, including malicious/harmless voting statistics, registrar information, creation dates, and DNS resolution history with associated IP addresses. This playbook can be triggered on-demand from a Next-Gen SIEM Case or integrated into other automated playbooks to perform enrichment when provided a detection ID and the relevant entity (such as IP addresses, domains, URLs, or file hashes).",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "FROM_trigger_TO_domain_exists",
+      "parameters": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case ID",
+            "format": "ngsiemCaseID"
+          },
+          "detection_id": {
+            "type": "string",
+            "title": "Detection ID",
+            "format": "investigatableID"
+          },
+          "domain": {
+            "type": "string",
+            "title": "Domain",
+            "format": "domain"
+          }
+        },
+        "type": "object"
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "FROM_AddCommentToAlertFinalEnrichmentComments_TO_end": {
+        "source": "AddCommentToAlertFinalEnrichmentComments",
+        "target": "end",
+        "condition": {}
+      },
+      "FROM_AddCommentToCaseEnrichmentComments_TO_end": {
+        "source": "AddCommentToCaseEnrichmentComments",
+        "target": "end",
+        "condition": {}
+      },
+      "FROM_AddTagsToCase_TO_end": {
+        "source": "AddTagsToCaseEnrichmentTags",
+        "target": "end",
+        "condition": {}
+      },
+      "FROM_CreateVariable2_TO_UpdateVariableParseCommentChunkingVars": {
+        "source": "CreateVariableInitializeCommentChunkingVars",
+        "target": "UpdateVariableParseCommentChunkingVars",
+        "condition": {}
+      },
+      "FROM_CreateVariable3_TO_UpdateVariable5": {
+        "source": "CreateVariable3",
+        "target": "UpdateVariable5",
+        "condition": {}
+      },
+      "FROM_CreateVariable_TO_CreateVariable3": {
+        "source": "CreateVariable",
+        "target": "CreateVariable3",
+        "condition": {}
+      },
+      "FROM_Loop1_TO_data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current": {
+        "source": "Loop1",
+        "target": "data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current",
+        "condition": {}
+      },
+      "FROM_Loop2_TO_UpdateVariable8": {
+        "source": "Loop2",
+        "target": "UpdateVariable8",
+        "condition": {}
+      },
+      "FROM_Loop_TO_end": {
+        "source": "Loop",
+        "target": "end",
+        "condition": {}
+      },
+      "FROM_UpdateVariable5_TO_VirusTotalDomainLookup": {
+        "source": "UpdateVariable5",
+        "target": "VirusTotalDomainLookup",
+        "condition": {}
+      },
+      "FROM_UpdateVariable6_TO_UpdateVariable7": {
+        "source": "UpdateVariable6",
+        "target": "UpdateVariable7",
+        "condition": {}
+      },
+      "FROM_UpdateVariable7_TO_Loop2": {
+        "source": "UpdateVariable7",
+        "target": "Loop2",
+        "condition": {}
+      },
+      "FROM_UpdateVariable8_TO_UpdateVariable9": {
+        "source": "UpdateVariable8",
+        "target": "UpdateVariable9",
+        "condition": {}
+      },
+      "FROM_UpdateVariable9_TO_UpdateVariableSetEnrichmentCommentAndTags": {
+        "source": "UpdateVariable9",
+        "target": "UpdateVariableSetEnrichmentCommentAndTags",
+        "condition": {}
+      },
+      "FROM_UpdateVariableParseCommentChunkingVars_TO_Loop1": {
+        "source": "UpdateVariableParseCommentChunkingVars",
+        "target": "Loop1",
+        "condition": {}
+      },
+      "FROM_UpdateVariableSetEnrichmentCommentAndTags_TO_parallel_UpdateVariableSetEnrichmentCommentAndTags": {
+        "source": "UpdateVariableSetEnrichmentCommentAndTags",
+        "target": "parallel_UpdateVariableSetEnrichmentCommentAndTags",
+        "condition": {}
+      },
+      "FROM_VirusTotalDomainLookup_TO_status_code_is_equal_to_200___ok": {
+        "source": "VirusTotalDomainLookup",
+        "target": "status_code_is_equal_to_200___ok",
+        "condition": {}
+      },
+      "FROM_WriteToLogRepo_TO_end": {
+        "source": "WriteToLogRepo",
+        "target": "end",
+        "condition": {}
+      },
+      "FROM_case_id_exists_TO_parallel_case_id_exists": {
+        "source": "case_id_exists",
+        "target": "parallel_case_id_exists",
+        "condition": {
+          "expression": "case_id:!null",
+          "display": [
+            "Case ID exists"
+          ]
+        }
+      },
+      "FROM_data39workflowcustomvariable_comment39_size_gt_0_TO_AddCommentToCaseEnrichmentComments": {
+        "source": "data39workflowcustomvariable_comment39_size_gt_0",
+        "target": "AddCommentToCaseEnrichmentComments",
+        "condition": {
+          "cel_expression": "data['WorkflowCustomVariable.comment'].size() > 0",
+          "display": [
+            "data[&#39;WorkflowCustomVariable.comment&#39;].size() &gt; 0"
+          ]
+        }
+      },
+      "FROM_data39workflowcustomvariable_comment39_size_gt_1_TO_CreateVariable2": {
+        "source": "data39workflowcustomvariable_comment39_size_gt_1",
+        "target": "CreateVariableInitializeCommentChunkingVars",
+        "condition": {
+          "cel_expression": "data['WorkflowCustomVariable.comment'].size() > 0",
+          "display": [
+            "data[&#39;WorkflowCustomVariable.comment&#39;].size() &gt; 0"
+          ]
+        }
+      },
+      "FROM_data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current_TO_AddCommentToAlertFinalEnrichmentComments": {
+        "source": "data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current",
+        "target": "AddCommentToAlertFinalEnrichmentComments",
+        "condition": {
+          "cel_expression": "data['WorkflowCustomVariable.current_comment'].size() > 0 && data['WorkflowCustomVariable.current_comment'].trim().size() != data['WorkflowCustomVariable.common_line'].trim().size()",
+          "display": [
+            "data[&#39;WorkflowCustomVariable.current_comment&#39;].size() &gt; 0 &amp;&amp; data[&#39;WorkflowCustomVariable.current_comment&#39;].trim().size() != data[&#39;WorkflowCustomVariable.common_line&#39;].trim().size()"
+          ]
+        }
+      },
+      "FROM_data39workflowcustomvariable_tags39_size_gt_0_TO_AddTagsToCase": {
+        "source": "data39workflowcustomvariable_tags39_size_gt_0",
+        "target": "AddTagsToCaseEnrichmentTags",
+        "condition": {
+          "cel_expression": "data['WorkflowCustomVariable.tags'].size() > 0",
+          "display": [
+            "data[&#39;WorkflowCustomVariable.tags&#39;].size() &gt; 0"
+          ]
+        }
+      },
+      "FROM_data39workflowcustomvariable_tags39_size_gt_1_TO_Loop": {
+        "source": "data39workflowcustomvariable_tags39_size_gt_1",
+        "target": "Loop",
+        "condition": {
+          "cel_expression": "data['WorkflowCustomVariable.tags'].size() > 0",
+          "display": [
+            "data[&#39;WorkflowCustomVariable.tags&#39;].size() &gt; 0"
+          ]
+        }
+      },
+      "FROM_detection_id_exists_TO_parallel_detection_id_exists": {
+        "source": "detection_id_exists",
+        "target": "parallel_detection_id_exists",
+        "condition": {
+          "expression": "detection_id:!null",
+          "display": [
+            "Detection ID exists"
+          ]
+        }
+      },
+      "FROM_domain_exists_TO_CreateVariable": {
+        "source": "domain_exists",
+        "target": "CreateVariable",
+        "condition": {
+          "expression": "domain:!null",
+          "display": [
+            "Domain exists"
+          ]
+        }
+      },
+      "FROM_parallel_UpdateVariableSetEnrichmentCommentAndTags_TO_case_id_exists": {
+        "source": "parallel_UpdateVariableSetEnrichmentCommentAndTags",
+        "target": "case_id_exists",
+        "condition": {}
+      },
+      "FROM_parallel_UpdateVariableSetEnrichmentCommentAndTags_TO_detection_id_exists": {
+        "source": "parallel_UpdateVariableSetEnrichmentCommentAndTags",
+        "target": "detection_id_exists",
+        "condition": {}
+      },
+      "FROM_parallel_case_id_exists_TO_data39workflowcustomvariable_comment39_size_gt_0": {
+        "source": "parallel_case_id_exists",
+        "target": "data39workflowcustomvariable_comment39_size_gt_0",
+        "condition": {}
+      },
+      "FROM_parallel_case_id_exists_TO_data39workflowcustomvariable_tags39_size_gt_0": {
+        "source": "parallel_case_id_exists",
+        "target": "data39workflowcustomvariable_tags39_size_gt_0",
+        "condition": {}
+      },
+      "FROM_parallel_detection_id_exists_TO_data39workflowcustomvariable_comment39_size_gt_1": {
+        "source": "parallel_detection_id_exists",
+        "target": "data39workflowcustomvariable_comment39_size_gt_1",
+        "condition": {}
+      },
+      "FROM_parallel_detection_id_exists_TO_data39workflowcustomvariable_tags39_size_gt_1": {
+        "source": "parallel_detection_id_exists",
+        "target": "data39workflowcustomvariable_tags39_size_gt_1",
+        "condition": {}
+      },
+      "FROM_status_code_is_equal_to_200___ok_TO_UpdateVariable6": {
+        "source": "status_code_is_equal_to_200___ok",
+        "target": "UpdateVariable6",
+        "condition": {
+          "expression": "VirusTotalDomainLookup.status_code:200",
+          "display": [
+            "Status code is equal to 200 - OK"
+          ]
+        }
+      },
+      "FROM_status_code_is_equal_to_200___ok_TO_WriteToLogRepo": {
+        "source": "status_code_is_equal_to_200___ok",
+        "target": "WriteToLogRepo",
+        "condition": {}
+      },
+      "FROM_trigger_TO_domain_exists": {
+        "source": "trigger",
+        "target": "domain_exists",
+        "condition": {}
+      }
+    },
+    "gateways": {
+      "case_id_exists": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_parallel_UpdateVariableSetEnrichmentCommentAndTags_TO_case_id_exists"
+          ],
+          "outgoing": [
+            "FROM_case_id_exists_TO_parallel_case_id_exists"
+          ]
+        }
+      },
+      "data39workflowcustomvariable_comment39_size_gt_0": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_parallel_case_id_exists_TO_data39workflowcustomvariable_comment39_size_gt_0"
+          ],
+          "outgoing": [
+            "FROM_data39workflowcustomvariable_comment39_size_gt_0_TO_AddCommentToCaseEnrichmentComments"
+          ]
+        }
+      },
+      "data39workflowcustomvariable_comment39_size_gt_1": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_parallel_detection_id_exists_TO_data39workflowcustomvariable_comment39_size_gt_1"
+          ],
+          "outgoing": [
+            "FROM_data39workflowcustomvariable_comment39_size_gt_1_TO_CreateVariable2"
+          ]
+        }
+      },
+      "data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_Loop1_TO_data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current"
+          ],
+          "outgoing": [
+            "FROM_data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current_TO_AddCommentToAlertFinalEnrichmentComments"
+          ]
+        }
+      },
+      "data39workflowcustomvariable_tags39_size_gt_0": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_parallel_case_id_exists_TO_data39workflowcustomvariable_tags39_size_gt_0"
+          ],
+          "outgoing": [
+            "FROM_data39workflowcustomvariable_tags39_size_gt_0_TO_AddTagsToCase"
+          ]
+        }
+      },
+      "data39workflowcustomvariable_tags39_size_gt_1": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_parallel_detection_id_exists_TO_data39workflowcustomvariable_tags39_size_gt_1"
+          ],
+          "outgoing": [
+            "FROM_data39workflowcustomvariable_tags39_size_gt_1_TO_Loop"
+          ]
+        }
+      },
+      "detection_id_exists": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_parallel_UpdateVariableSetEnrichmentCommentAndTags_TO_detection_id_exists"
+          ],
+          "outgoing": [
+            "FROM_detection_id_exists_TO_parallel_detection_id_exists"
+          ]
+        }
+      },
+      "domain_exists": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_trigger_TO_domain_exists"
+          ],
+          "outgoing": [
+            "FROM_domain_exists_TO_CreateVariable"
+          ]
+        }
+      },
+      "parallel_UpdateVariableSetEnrichmentCommentAndTags": {
+        "type": "parallel",
+        "flows": {
+          "incoming": [
+            "FROM_UpdateVariableSetEnrichmentCommentAndTags_TO_parallel_UpdateVariableSetEnrichmentCommentAndTags"
+          ],
+          "outgoing": [
+            "FROM_parallel_UpdateVariableSetEnrichmentCommentAndTags_TO_case_id_exists",
+            "FROM_parallel_UpdateVariableSetEnrichmentCommentAndTags_TO_detection_id_exists"
+          ]
+        }
+      },
+      "parallel_case_id_exists": {
+        "type": "parallel",
+        "flows": {
+          "incoming": [
+            "FROM_case_id_exists_TO_parallel_case_id_exists"
+          ],
+          "outgoing": [
+            "FROM_parallel_case_id_exists_TO_data39workflowcustomvariable_tags39_size_gt_0",
+            "FROM_parallel_case_id_exists_TO_data39workflowcustomvariable_comment39_size_gt_0"
+          ]
+        }
+      },
+      "parallel_detection_id_exists": {
+        "type": "parallel",
+        "flows": {
+          "incoming": [
+            "FROM_detection_id_exists_TO_parallel_detection_id_exists"
+          ],
+          "outgoing": [
+            "FROM_parallel_detection_id_exists_TO_data39workflowcustomvariable_tags39_size_gt_1",
+            "FROM_parallel_detection_id_exists_TO_data39workflowcustomvariable_comment39_size_gt_1"
+          ]
+        }
+      },
+      "status_code_is_equal_to_200___ok": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_VirusTotalDomainLookup_TO_status_code_is_equal_to_200___ok"
+          ],
+          "outgoing": [
+            "FROM_status_code_is_equal_to_200___ok_TO_UpdateVariable6",
+            "FROM_status_code_is_equal_to_200___ok_TO_WriteToLogRepo"
+          ],
+          "default": "FROM_status_code_is_equal_to_200___ok_TO_WriteToLogRepo"
+        }
+      }
+    },
+    "activities": {
+      "AddCommentToAlertFinalEnrichmentComments": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to alert - Final enrichment comments",
+        "flows": {
+          "incoming": "FROM_data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current_TO_AddCommentToAlertFinalEnrichmentComments",
+          "outgoing": "FROM_AddCommentToAlertFinalEnrichmentComments_TO_end"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "properties": {
+          "comment": "${data['WorkflowCustomVariable.current_comment']}",
+          "investigatable_id": "${detection_id}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToCaseEnrichmentComments": {
+        "id": "a16f4fdd1b244b0bfeecd47e25dbe0e0",
+        "name": "Add Comment to Case - Enrichment comments",
+        "flows": {
+          "incoming": "FROM_data39workflowcustomvariable_comment39_size_gt_0_TO_AddCommentToCaseEnrichmentComments",
+          "outgoing": "FROM_AddCommentToCaseEnrichmentComments_TO_end"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "properties": {
+          "case_id": "${case_id}",
+          "comment": "${data['WorkflowCustomVariable.comment'].replace('|~|', '')}"
+        },
+        "version_constraint": "~1"
+      },
+      "AddTagsToCaseEnrichmentTags": {
+        "id": "696f57b7cdcd475e5c56e6196836ee39",
+        "name": "Add tags to case - Enrichment tags",
+        "flows": {
+          "incoming": "FROM_data39workflowcustomvariable_tags39_size_gt_0_TO_AddTagsToCase",
+          "outgoing": "FROM_AddTagsToCase_TO_end"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "properties": {
+          "case_id": "${case_id}",
+          "tags": [
+            "${data['WorkflowCustomVariable.tags']}"
+          ]
+        },
+        "version_constraint": "~1"
+      },
+      "CreateVariable": {
+        "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+        "class": "CreateVariable",
+        "name": "Create variable - Initialize comment and tags storage",
+        "flows": {
+          "incoming": "FROM_domain_exists_TO_CreateVariable",
+          "outgoing": "FROM_CreateVariable_TO_CreateVariable3"
+        },
+        "properties": {
+          "variable_schema": {
+            "properties": {
+              "comment": {
+                "type": "string"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "CreateVariable3": {
+        "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+        "class": "CreateVariable",
+        "name": "Create variable - Initialize DNS resolution data structure",
+        "flows": {
+          "incoming": "FROM_CreateVariable_TO_CreateVariable3",
+          "outgoing": "FROM_CreateVariable3_TO_UpdateVariable5"
+        },
+        "properties": {
+          "variable_schema": {
+            "properties": {
+              "cleaned_domain": {
+                "type": "string"
+              },
+              "dns_res": {
+                "items": {
+                  "properties": {},
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "loop_output": {
+                "items": {
+                  "properties": {},
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "resolution_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "CreateVariableInitializeCommentChunkingVars": {
+        "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+        "class": "CreateVariable",
+        "name": "Create variable - Initialize comment chunking vars",
+        "flows": {
+          "incoming": "FROM_data39workflowcustomvariable_comment39_size_gt_1_TO_CreateVariable2",
+          "outgoing": "FROM_CreateVariable2_TO_UpdateVariableParseCommentChunkingVars"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "properties": {
+          "variable_schema": {
+            "properties": {
+              "common_line": {
+                "type": "string"
+              },
+              "current_comment": {
+                "type": "string"
+              },
+              "current_index": {
+                "type": "integer"
+              },
+              "field_and_value_array": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateVariable5": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - Clean and normalize domain input",
+        "flows": {
+          "incoming": "FROM_CreateVariable3_TO_UpdateVariable5",
+          "outgoing": "FROM_UpdateVariable5_TO_VirusTotalDomainLookup"
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "cleaned_domain": "${data['domain'].contains('://')?data['domain'].split('://')[1].split('/')[0]:data['domain'].split('/')[0]}"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateVariable6": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - Build VirusTotal analysis comment",
+        "flows": {
+          "incoming": "FROM_status_code_is_equal_to_200___ok_TO_UpdateVariable6",
+          "outgoing": "FROM_UpdateVariable6_TO_UpdateVariable7"
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "comment": "${data['WorkflowCustomVariable.comment'] + \"\\n\" + ((data['VirusTotalDomainLookup.body.data.attributes'] != null) ? ('VirusTotal Enrichment for ' + data['WorkflowCustomVariable.cleaned_domain'] + ': |~|\\n' +   (data['VirusTotalDomainLookup.body.data.attributes.total_votes.malicious'] != null && data['VirusTotalDomainLookup.body.data.attributes.total_votes.malicious'] >= 0 ? '- Malicious Votes: ' + string(data['VirusTotalDomainLookup.body.data.attributes.total_votes.malicious']) + ' |~|\\n' : '') +   (data['VirusTotalDomainLookup.body.data.attributes.total_votes.harmless'] != null && data['VirusTotalDomainLookup.body.data.attributes.total_votes.harmless'] >= 0 ? '- Harmless Votes: ' + string(data['VirusTotalDomainLookup.body.data.attributes.total_votes.harmless']) + ' |~|\\n' : '') +   (data['VirusTotalDomainLookup.body.data.attributes.registrar'] != null && data['VirusTotalDomainLookup.body.data.attributes.registrar'] != '' ? '- Registrar: ' + data['VirusTotalDomainLookup.body.data.attributes.registrar'] + ' |~|\\n' : '') +   (data['VirusTotalDomainLookup.body.data.attributes.creation_date'] != null && data['VirusTotalDomainLookup.body.data.attributes.creation_date'] >= 0 ? '- Creation Date: ' + cs.timestamp.format(timestamp(int(data['VirusTotalDomainLookup.body.data.attributes.creation_date'])), 'RFC822') + ' |~|\\n' : '') +   (data['VirusTotalDomainLookup.body.data.attributes.last_modification_date'] != null && data['VirusTotalDomainLookup.body.data.attributes.last_modification_date'] >= 0 ? '- Last Modified: ' + cs.timestamp.format(timestamp(int(data['VirusTotalDomainLookup.body.data.attributes.last_modification_date'])), 'RFC822') + ' |~|\\n' : '') +   (data['VirusTotalDomainLookup.body.data.attributes.last_update_date'] != null && data['VirusTotalDomainLookup.body.data.attributes.last_update_date'] >= 0 ? '- Last Updated: ' + cs.timestamp.format(timestamp(int(data['VirusTotalDomainLookup.body.data.attributes.last_update_date'])), 'RFC822') + \" |~|\\n\": '')) : '')}",
+            "tags": "${data['WorkflowCustomVariable.tags']+((data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats'] != null) ? [\n  (data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.malicious'] != null && data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.malicious'] >= 0) ? (\"VirusTotal:\" + data['WorkflowCustomVariable.cleaned_domain'] + \":malicious:\" + string(data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.malicious'])) : \"\",\n  (data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.suspicious'] != null && data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.suspicious'] >= 0) ? (\"VirusTotal:\" + data['WorkflowCustomVariable.cleaned_domain'] + \":suspicious:\" + string(data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.suspicious'])) : \"\",\n  (data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.harmless'] != null && data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.harmless'] >= 0) ? (\"VirusTotal:\" + data['WorkflowCustomVariable.cleaned_domain'] + \":harmless:\" + string(data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.harmless'])) : \"\",\n  (data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.undetected'] != null && data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.undetected'] >= 0) ? (\"VirusTotal:\" + data['WorkflowCustomVariable.cleaned_domain'] + \":undetected:\" + string(data['VirusTotalDomainLookup.body.data.attributes.last_analysis_stats.undetected'])) : \"\",\n  (data['VirusTotalDomainLookup.body.data.attributes.reputation'] != null && data['VirusTotalDomainLookup.body.data.attributes.reputation'] != \"\") ? (\"VirusTotal:\" + data['WorkflowCustomVariable.cleaned_domain'] + \":reputation:\" + string(data['VirusTotalDomainLookup.body.data.attributes.reputation'])) : \"\"\n].filter(tag, tag != \"\") : [])}"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateVariable7": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - Extract A record resolution IDs",
+        "flows": {
+          "incoming": "FROM_UpdateVariable6_TO_UpdateVariable7",
+          "outgoing": "FROM_UpdateVariable7_TO_Loop2"
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "resolution_ids": "${data['VirusTotalDomainLookup.body.data.attributes.last_dns_records'].filter(r, r.type == 'A').map(record, record.value + data['WorkflowCustomVariable.cleaned_domain'])}"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateVariable8": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - Transform DNS resolution loop output",
+        "flows": {
+          "incoming": "FROM_Loop2_TO_UpdateVariable8",
+          "outgoing": "FROM_UpdateVariable8_TO_UpdateVariable9"
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "loop_output": "${data['Loop2.output'].map(e, {\n      \"date\": e[\"VirusTotalGetDNSResolution.body.data.attributes.date\"],\n    \"host_name\": e[\"VirusTotalGetDNSResolution.body.data.attributes.host_name\"],\n    \"host_name_last_analysis_stats\": {\n      \"harmless\": e[\"VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.harmless\"],\n      \"malicious\": e[\"VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.malicious\"],\n      \"suspicious\": e[\"VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.suspicious\"],\n      \"timeout\": e[\"VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.timeout\"],\n      \"undetected\": e[\"VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.undetected\"]\n    },\n    \"id\":  e[\"VirusTotalGetDNSResolution.body.data.id\"],\n    \"ip_address\": e[\"VirusTotalGetDNSResolution.body.data.attributes.ip_address\"],\n    \"ip_address_last_analysis_stats\": {\n      \"harmless\": e[\"VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.harmless\"],\n      \"malicious\": e[\"VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.malicious\"],\n      \"suspicious\": e[\"VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.suspicious\"],\n      \"timeout\": e[\"VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.timeout\"],\n      \"undetected\": e[\"VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.undetected\"]\n    },\n    \"resolver\": e[\"VirusTotalGetDNSResolution.body.data.attributes.resolver\"]\n})}"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateVariable9": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - Build DNS resolution comments and tags",
+        "flows": {
+          "incoming": "FROM_UpdateVariable8_TO_UpdateVariable9",
+          "outgoing": "FROM_UpdateVariable9_TO_UpdateVariableSetEnrichmentCommentAndTags"
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "dns_res": "${data['WorkflowCustomVariable.loop_output'].map(e, {\n  \"comment\": \"\",\n  \"tags\": (e[\"host_name\"] != \"null\" && e[\"host_name\"] != \"\") ? [\n    (e['host_name_last_analysis_stats'].malicious != null && e['host_name_last_analysis_stats'].malicious > 0) ? (\"VirusTotal:\" + e[\"host_name\"] + \":host_malicious:\" + string(e['host_name_last_analysis_stats'].malicious)) : \"\"\n  ].filter(tag, tag != \"\") : []\n})}"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateVariableParseCommentChunkingVars": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - Parse comment chunking vars",
+        "flows": {
+          "incoming": "FROM_CreateVariable2_TO_UpdateVariableParseCommentChunkingVars",
+          "outgoing": "FROM_UpdateVariableParseCommentChunkingVars_TO_Loop1"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "common_line": "${data['WorkflowCustomVariable.comment'].trim().split(\"|~|\").size() > 0 ? data['WorkflowCustomVariable.comment'].trim().split(\"|~|\")[0] : \"\"}",
+            "current_comment": "${data['WorkflowCustomVariable.comment'].trim().split(\"|~|\").size() > 0 ? data['WorkflowCustomVariable.comment'].trim().split(\"|~|\")[0] + \"\\n\" : \"\"}",
+            "current_index": "0",
+            "field_and_value_array": "${data['WorkflowCustomVariable.comment'].split(\"|~|\").size() > 1 ? data['WorkflowCustomVariable.comment'].split(\"|~|\").slice(1, data['WorkflowCustomVariable.comment'].split(\"|~|\").size()).map(pair, pair.trim()) : []}"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateVariableSetEnrichmentCommentAndTags": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - Set enrichment comment and tags",
+        "flows": {
+          "incoming": "FROM_UpdateVariable9_TO_UpdateVariableSetEnrichmentCommentAndTags",
+          "outgoing": "FROM_UpdateVariableSetEnrichmentCommentAndTags_TO_parallel_UpdateVariableSetEnrichmentCommentAndTags"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "comment": "${data['WorkflowCustomVariable.comment']+\"\\n\"+data['WorkflowCustomVariable.dns_res'].map(e, e.comment).join(\", |~|\\n\")}",
+            "tags": "${data['WorkflowCustomVariable.tags'] + data['WorkflowCustomVariable.dns_res'].map(e, e.tags).flatten(1)}"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "VirusTotalDomainLookup": {
+        "id": "4e173250822e4806b11d8b91fe57b16f~bc2df090c5f5e74635ee1e00aa9b7322",
+        "name": "VirusTotal - Domain Lookup - Get domain analysis data",
+        "flows": {
+          "incoming": "FROM_UpdateVariable5_TO_VirusTotalDomainLookup",
+          "outgoing": "FROM_VirusTotalDomainLookup_TO_status_code_is_equal_to_200___ok"
+        },
+        "properties": {
+          "params": {
+            "path": {
+              "domain": "${domain}"
+            }
+          }
+        },
+        "version_constraint": "~0"
+      },
+      "WriteToLogRepo": {
+        "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+        "name": "Write to log repo - VirusTotal API failure",
+        "flows": {
+          "incoming": "FROM_status_code_is_equal_to_200___ok_TO_WriteToLogRepo",
+          "outgoing": "FROM_WriteToLogRepo_TO_end"
+        },
+        "properties": {
+          "custom_json": {
+            "error": "VirusTotal - Domain Lookup API Failed."
+          }
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "FROM_AddTagsToCase_TO_end",
+        "FROM_AddCommentToCaseEnrichmentComments_TO_end",
+        "FROM_Loop_TO_end",
+        "FROM_AddCommentToAlertFinalEnrichmentComments_TO_end",
+        "FROM_WriteToLogRepo_TO_end"
+      ]
+    },
+    "sub_models": {
+      "Loop": {
+        "model": {
+          "trigger": {
+            "id": "Loop",
+            "name": "",
+            "outgoing_flow": "FROM_trigger_TO_data39workflowcustomvariable_tags_39_size_lt_75",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "FROM_AddTagToDetection_TO_end": {
+              "source": "AddTagToAlertSingleEnrichmentTag",
+              "target": "end",
+              "condition": {}
+            },
+            "FROM_data39workflowcustomvariable_tags_39_size_lt_75_TO_AddTagToDetection": {
+              "source": "data39workflowcustomvariable_tags_39_size_lt_75",
+              "target": "AddTagToAlertSingleEnrichmentTag",
+              "condition": {
+                "cel_expression": "data['WorkflowCustomVariable.tags.#'].size() < 75",
+                "display": [
+                  "data[&#39;WorkflowCustomVariable.tags.#&#39;].size() &lt; 75"
+                ]
+              }
+            },
+            "FROM_trigger_TO_data39workflowcustomvariable_tags_39_size_lt_75": {
+              "source": "trigger",
+              "target": "data39workflowcustomvariable_tags_39_size_lt_75",
+              "condition": {}
+            }
+          },
+          "gateways": {
+            "data39workflowcustomvariable_tags_39_size_lt_75": {
+              "type": "exclusive",
+              "flows": {
+                "incoming": [
+                  "FROM_trigger_TO_data39workflowcustomvariable_tags_39_size_lt_75"
+                ],
+                "outgoing": [
+                  "FROM_data39workflowcustomvariable_tags_39_size_lt_75_TO_AddTagToDetection"
+                ]
+              }
+            }
+          },
+          "activities": {
+            "AddTagToAlertSingleEnrichmentTag": {
+              "id": "6de8a462880ad419680ed5c291b9413f",
+              "name": "Add tag to alert - Single enrichment tag",
+              "flows": {
+                "incoming": "FROM_data39workflowcustomvariable_tags_39_size_lt_75_TO_AddTagToDetection",
+                "outgoing": "FROM_AddTagToDetection_TO_end"
+              },
+              "mock_output": {
+                "node_mock_id": "",
+                "enabled": false
+              },
+              "properties": {
+                "investigatable_id": "${detection_id}",
+                "tag": "${data['WorkflowCustomVariable.tags.#']}"
+              },
+              "version_constraint": "~0"
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "FROM_AddTagToDetection_TO_end"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "WorkflowCustomVariable.tags",
+          "array_field_display_name": "tags",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0,
+          "sequential": true
+        },
+        "name": "For each tags; Sequentially",
+        "flows": {
+          "incoming": "FROM_data39workflowcustomvariable_tags39_size_gt_1_TO_Loop",
+          "outgoing": "FROM_Loop_TO_end"
+        }
+      },
+      "Loop1": {
+        "model": {
+          "trigger": {
+            "id": "Loop1",
+            "name": "",
+            "outgoing_flow": "FROM_trigger_TO_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "FROM_AddCommentToDetection_TO_UpdateVariable4": {
+              "source": "AddCommentToAlertContinuedCommentChunk",
+              "target": "UpdateVariableResetCommentForContinuation",
+              "condition": {}
+            },
+            "FROM_UpdateVariable3_TO_end": {
+              "source": "UpdateVariableAppendFieldToCurrentComment",
+              "target": "end",
+              "condition": {}
+            },
+            "FROM_UpdateVariable4_TO_end": {
+              "source": "UpdateVariableResetCommentForContinuation",
+              "target": "end",
+              "condition": {}
+            },
+            "FROM_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar_TO_AddCommentToDetection": {
+              "source": "data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar",
+              "target": "AddCommentToAlertContinuedCommentChunk",
+              "condition": {}
+            },
+            "FROM_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar_TO_UpdateVariable3": {
+              "source": "data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar",
+              "target": "UpdateVariableAppendFieldToCurrentComment",
+              "condition": {
+                "cel_expression": "data['WorkflowCustomVariable.current_comment'].size() + data['WorkflowCustomVariable.field_and_value_array'][data['WorkflowCustomVariable.current_index']].size() + string(\"\\n\").size() < (500 - string(\"\\n[Continued in next comment...]\").size())",
+                "display": [
+                  "data[&#39;WorkflowCustomVariable.current_comment&#39;].size() + data[&#39;WorkflowCustomVariable.field_and_value_array&#39;][data[&#39;WorkflowCustomVariable.current_index&#39;]].size() + string(&#34;\\n&#34;).size() &lt; (500 - string(&#34;\\n[Continued in next comment...]&#34;).size())"
+                ]
+              }
+            },
+            "FROM_trigger_TO_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar": {
+              "source": "trigger",
+              "target": "data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar",
+              "condition": {}
+            }
+          },
+          "gateways": {
+            "data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar": {
+              "type": "exclusive",
+              "flows": {
+                "incoming": [
+                  "FROM_trigger_TO_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar"
+                ],
+                "outgoing": [
+                  "FROM_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar_TO_UpdateVariable3",
+                  "FROM_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar_TO_AddCommentToDetection"
+                ],
+                "default": "FROM_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar_TO_AddCommentToDetection"
+              }
+            }
+          },
+          "activities": {
+            "AddCommentToAlertContinuedCommentChunk": {
+              "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+              "name": "Add comment to alert - Continued comment chunk",
+              "flows": {
+                "incoming": "FROM_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar_TO_AddCommentToDetection",
+                "outgoing": "FROM_AddCommentToDetection_TO_UpdateVariable4"
+              },
+              "mock_output": {
+                "node_mock_id": "",
+                "enabled": false
+              },
+              "properties": {
+                "comment": "${data['WorkflowCustomVariable.current_comment'] + \"\\n[Continued in next comment...]\"}",
+                "investigatable_id": "${detection_id}"
+              },
+              "version_constraint": "~0"
+            },
+            "UpdateVariableAppendFieldToCurrentComment": {
+              "id": "6c6eab39063fa3b72d98c82af60deb8a",
+              "class": "UpdateVariable",
+              "name": "Update variable - Append field to current comment",
+              "flows": {
+                "incoming": "FROM_data39workflowcustomvariable_current_comment39_size__data39workflowcustomvariable_field_and_value_ar_TO_UpdateVariable3",
+                "outgoing": "FROM_UpdateVariable3_TO_end"
+              },
+              "mock_output": {
+                "node_mock_id": "",
+                "enabled": false
+              },
+              "properties": {
+                "WorkflowCustomVariable": {
+                  "current_comment": "${data['WorkflowCustomVariable.current_comment'] + data['WorkflowCustomVariable.field_and_value_array'][data['WorkflowCustomVariable.current_index']] + \"\\n\"}",
+                  "current_index": "${data['WorkflowCustomVariable.current_index'] + 1}"
+                }
+              },
+              "version_constraint": "~1"
+            },
+            "UpdateVariableResetCommentForContinuation": {
+              "id": "6c6eab39063fa3b72d98c82af60deb8a",
+              "class": "UpdateVariable",
+              "name": "Update variable - Reset comment for continuation",
+              "flows": {
+                "incoming": "FROM_AddCommentToDetection_TO_UpdateVariable4",
+                "outgoing": "FROM_UpdateVariable4_TO_end"
+              },
+              "mock_output": {
+                "node_mock_id": "",
+                "enabled": false
+              },
+              "properties": {
+                "WorkflowCustomVariable": {
+                  "current_comment": "${data['WorkflowCustomVariable.common_line'] + \":\" + \"\\n\"}"
+                }
+              },
+              "version_constraint": "~1"
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "FROM_UpdateVariable3_TO_end",
+              "FROM_UpdateVariable4_TO_end"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "",
+          "array_field_display_name": "",
+          "continue_on_partial_execution": false,
+          "condition": {
+            "cel_expression": "data['WorkflowCustomVariable.current_index'] < data['WorkflowCustomVariable.field_and_value_array'].size()",
+            "display": [
+              "data[&#39;WorkflowCustomVariable.current_index&#39;] &lt; data[&#39;WorkflowCustomVariable.field_and_value_array&#39;].size()"
+            ]
+          },
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0,
+          "sequential": true
+        },
+        "name": "While data[&#39;WorkflowCustomVariable.current_index&#39;] &lt; data[&#39;WorkflowCustomVariable.field_and_value_array&#39;].size()",
+        "flows": {
+          "incoming": "FROM_UpdateVariableParseCommentChunkingVars_TO_Loop1",
+          "outgoing": "FROM_Loop1_TO_data39workflowcustomvariable_current_comment39_size_gt_0_ampamp_data39workflowcustomvariable_current"
+        }
+      },
+      "Loop2": {
+        "model": {
+          "trigger": {
+            "id": "Loop2",
+            "name": "",
+            "outgoing_flow": "FROM_trigger_TO_VirusTotalGetDNSResolution",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "FROM_VirusTotalGetDNSResolution_TO_end": {
+              "source": "VirusTotalGetDNSResolution",
+              "target": "end",
+              "condition": {}
+            },
+            "FROM_trigger_TO_VirusTotalGetDNSResolution": {
+              "source": "trigger",
+              "target": "VirusTotalGetDNSResolution",
+              "condition": {}
+            }
+          },
+          "activities": {
+            "VirusTotalGetDNSResolution": {
+              "id": "4e173250822e4806b11d8b91fe57b16f~61b2803acb3cf068ce8412ddd47d530e",
+              "name": "VirusTotal - Get DNS Resolution - Historical DNS records",
+              "flows": {
+                "incoming": "FROM_trigger_TO_VirusTotalGetDNSResolution",
+                "outgoing": "FROM_VirusTotalGetDNSResolution_TO_end"
+              },
+              "properties": {
+                "params": {
+                  "path": {
+                    "resolution_id": "${data['WorkflowCustomVariable.resolution_ids.#']}"
+                  }
+                }
+              },
+              "version_constraint": "~0"
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "FROM_VirusTotalGetDNSResolution_TO_end"
+            ],
+            "output_fields": [
+              "VirusTotalGetDNSResolution.body.data.attributes.date",
+              "VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.harmless",
+              "VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.harmless",
+              "VirusTotalGetDNSResolution.body.data.attributes.host_name",
+              "VirusTotalGetDNSResolution.body.data.id",
+              "VirusTotalGetDNSResolution.body.data.attributes.ip_address",
+              "VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.malicious",
+              "VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.malicious",
+              "VirusTotalGetDNSResolution.body.data.attributes.resolver",
+              "VirusTotalGetDNSResolution.body.data.links.self",
+              "VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.suspicious",
+              "VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.suspicious",
+              "VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.timeout",
+              "VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.timeout",
+              "VirusTotalGetDNSResolution.body.data.type",
+              "VirusTotalGetDNSResolution.body.data.attributes.host_name_last_analysis_stats.undetected",
+              "VirusTotalGetDNSResolution.body.data.attributes.ip_address_last_analysis_stats.undetected"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "WorkflowCustomVariable.resolution_ids",
+          "array_field_display_name": "resolution_ids",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0,
+          "sequential": true
+        },
+        "name": "For each resolution_ids; Sequentially",
+        "flows": {
+          "incoming": "FROM_UpdateVariable7_TO_Loop2",
+          "outgoing": "FROM_Loop2_TO_UpdateVariable8"
+        }
+      }
+    }
+  },
+  "use_cases": [
+    "Threat Intelligence"
+  ],
+  "vendors": [
+    "CrowdStrike",
+    "VirusTotal"
+  ],
+  "complexity": 9,
+  "trigger_type": "On demand",
+  "id": "3452ba7ac9334fef873e029cd77f3a5d",
+  "version": "0.140.0",
+  "created_timestamp": "2026-02-03T23:05:09.799140661Z",
+  "last_modified_timestamp": "2026-02-03T23:05:09.70834728Z",
+  "activities": [
+    {
+      "id": "6c6eab39063fa3b72d98c82af60deb8a",
+      "name": "Update variable"
+    },
+    {
+      "id": "4e173250822e4806b11d8b91fe57b16f~bc2df090c5f5e74635ee1e00aa9b7322",
+      "name": "VirusTotal - Domain Lookup"
+    },
+    {
+      "id": "a16f4fdd1b244b0bfeecd47e25dbe0e0",
+      "name": "Add Comment to Case"
+    },
+    {
+      "id": "696f57b7cdcd475e5c56e6196836ee39",
+      "name": "Add tags to case"
+    },
+    {
+      "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+      "name": "Create variable"
+    },
+    {
+      "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+      "name": "Write to log repo"
+    },
+    {
+      "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+      "name": "Add comment to alert"
+    },
+    {
+      "id": "6de8a462880ad419680ed5c291b9413f",
+      "name": "Add tag to alert"
+    },
+    {
+      "id": "4e173250822e4806b11d8b91fe57b16f~61b2803acb3cf068ce8412ddd47d530e",
+      "name": "VirusTotal - Get DNS Resolution"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  },
+  "unavailable_reasons": [
+    "Requires additional CID permissions\nAdditional CID permissions needed to add this action",
+    "Requires additional permissions\nAdditional user permissions needed to add this action"
+  ]
+}

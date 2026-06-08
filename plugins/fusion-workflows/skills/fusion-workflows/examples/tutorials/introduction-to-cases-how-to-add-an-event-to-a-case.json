@@ -1,0 +1,165 @@
+{
+  "name": "Introduction to Cases: How to add an event to a case",
+  "description": "Learn how to add an event to a case",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "flow_a9011677-1741-4b32-9bbd-4e8dd73ff56e",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "anchor": ""
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "flow_1f1aecda-25af-4632-889e-7de3d607fb6c": {
+        "source": "ExampleEventQuery",
+        "target": "AddEventsToCase",
+        "condition": {}
+      },
+      "flow_52cac3b9-0a4f-482c-9e4a-569bb8a48713": {
+        "source": "AddEventsToCase",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_a9011677-1741-4b32-9bbd-4e8dd73ff56e": {
+        "source": "trigger",
+        "target": "ExampleEventQuery",
+        "condition": {}
+      }
+    },
+    "activities": {
+      "AddEventsToCase": {
+        "id": "91e6224248076bdea0e79b51f8b8b13a",
+        "name": "Add events to case",
+        "flows": {
+          "incoming": "flow_1f1aecda-25af-4632-889e-7de3d607fb6c",
+          "outgoing": "flow_52cac3b9-0a4f-482c-9e4a-569bb8a48713"
+        },
+        "position": {
+          "x": 0,
+          "y": 672,
+          "anchor": ""
+        },
+        "properties": {
+          "case_id": "AAAAAAAAAAFGY2z2DOOaLGMkTGlrJtvbieKrODNtpJgkxoBu_O-enzSixGrCBiTMtYbsdwxTxrQhj95juejTTVdXpGFj5lSZTFWMUxiOdy1KprGaifRlZXPT9Uh0x0Fbj3hJLsPXnMcEoblTxPWpS7SEsfi9GckXqzOfZA",
+          "events": [
+            "${data['ExampleEventQuery.results'][0].eventID}"
+          ]
+        },
+        "version_constraint": "~1"
+      },
+      "ExampleEventQuery": {
+        "id": "cdf5c3e0d69f156eaaf56c1f5d3f1b66",
+        "class": "Inline.QueryEvent",
+        "name": "example event query",
+        "flows": {
+          "incoming": "flow_a9011677-1741-4b32-9bbd-4e8dd73ff56e",
+          "outgoing": "flow_1f1aecda-25af-4632-889e-7de3d607fb6c"
+        },
+        "inline_configuration": {
+          "config": {
+            "description": "",
+            "end": "now",
+            "last_modified_by": "mirza.baig@crowdstrike.com",
+            "last_modified_timestamp": "2026-03-05T00:06:33.337Z",
+            "repo_or_view": "search-all",
+            "search_name": "example queries",
+            "search_query": "#repo = fusion\n| select([\"trigger.data.Workflow.Definition.Name\", @id])\n| rename(field=@id, as=eventID)\n",
+            "search_query_args": {},
+            "start": "45m",
+            "tags": []
+          },
+          "output_schema": {
+            "$schema": "https://json-schema.org/draft-07/schema",
+            "properties": {
+              "eventID": {
+                "type": "string",
+                "title": "EventID"
+              },
+              "trigger": {
+                "properties": {
+                  "data": {
+                    "properties": {
+                      "Workflow": {
+                        "properties": {
+                          "Definition": {
+                            "properties": {
+                              "Name": {
+                                "type": "string",
+                                "title": "Trigger Data Workflow Definition Name"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object",
+            "description": "Generated response schema"
+          }
+        },
+        "position": {
+          "x": 0,
+          "y": 176,
+          "anchor": ""
+        },
+        "properties": {
+          "output_files_only": false,
+          "workflow_export_event_query_results_to_csv": false
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_52cac3b9-0a4f-482c-9e4a-569bb8a48713"
+      ]
+    }
+  },
+  "use_cases": [
+    "SIEM",
+    "Endpoint security"
+  ],
+  "vendors": [
+    "CrowdStrike"
+  ],
+  "complexity": 2,
+  "trigger_type": "On demand",
+  "disconnected_nodes": [
+    {
+      "comment": "The @ character is reserved in JSON Schema. If an event query returns a field with @ in its name, use the rename() function to remove the special character. This allows the schema to be generated properly so you can reference the field.",
+      "id": "notes_334b43a9-8e91-4e1e-9c3a-d74c9b005767",
+      "position": {
+        "x": 296.4380493675204,
+        "y": 197.40048164103592
+      }
+    }
+  ],
+  "id": "e1c96d5ca29f44d69ac3f7fad178d8a8",
+  "version": "0.193.0",
+  "created_timestamp": "2026-03-16T23:19:27.044744282Z",
+  "last_modified_timestamp": "2026-05-21T17:26:08.489461851Z",
+  "activities": [
+    {
+      "id": "91e6224248076bdea0e79b51f8b8b13a",
+      "name": "Add events to case"
+    },
+    {
+      "id": "cdf5c3e0d69f156eaaf56c1f5d3f1b66",
+      "name": "Workflow-specific event query"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

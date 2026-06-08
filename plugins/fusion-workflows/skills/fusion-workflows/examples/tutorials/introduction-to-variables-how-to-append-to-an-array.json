@@ -1,0 +1,187 @@
+{
+  "name": "Introduction to variables: How to append to an array",
+  "description": "Learn how to create a workflow which appends data to an array using the 'Create variable' and 'Update variable' actions as it iterates through a list. This workflow demonstrates how to query for 'Contained' devices, extract sensor IDs, enrich each sensor to retrieve hostnames, and append these hostnames to a 'combined' array",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "flow_b6718dab-2b32-4eea-b6aa-5df8922a8ead",
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "flow_0308bd13-432c-41b7-8007-833571d81774": {
+        "source": "activity_baf5e0ec-0571-48c8-8017-3152fb7756d2",
+        "target": "sub_model_a9f89b48-be8a-41a7-b093-c982d8168961",
+        "condition": {}
+      },
+      "flow_0551126f-238f-408f-b062-9babe0bc406b": {
+        "source": "activity_25d3e2fe-d168-4b87-aa35-d14e194054b3",
+        "target": "activity_baf5e0ec-0571-48c8-8017-3152fb7756d2",
+        "condition": {}
+      },
+      "flow_63264cd1-ca4c-4e1c-83d7-395eba04efcf": {
+        "source": "sub_model_a9f89b48-be8a-41a7-b093-c982d8168961",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_b6718dab-2b32-4eea-b6aa-5df8922a8ead": {
+        "source": "trigger",
+        "target": "activity_25d3e2fe-d168-4b87-aa35-d14e194054b3",
+        "condition": {}
+      }
+    },
+    "activities": {
+      "activity_25d3e2fe-d168-4b87-aa35-d14e194054b3": {
+        "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+        "class": "CreateVariable",
+        "name": "Create variable",
+        "flows": {
+          "incoming": "flow_b6718dab-2b32-4eea-b6aa-5df8922a8ead",
+          "outgoing": "flow_0551126f-238f-408f-b062-9babe0bc406b"
+        },
+        "properties": {
+          "variable_schema": {
+            "properties": {
+              "combined": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        }
+      },
+      "activity_baf5e0ec-0571-48c8-8017-3152fb7756d2": {
+        "id": "68ffa99af40c84b36462daa076f535d0",
+        "name": "Device Query",
+        "flows": {
+          "incoming": "flow_0551126f-238f-408f-b062-9babe0bc406b",
+          "outgoing": "flow_0308bd13-432c-41b7-8007-833571d81774"
+        },
+        "properties": {
+          "connection_status": "online"
+        }
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_63264cd1-ca4c-4e1c-83d7-395eba04efcf"
+      ]
+    },
+    "sub_models": {
+      "sub_model_a9f89b48-be8a-41a7-b093-c982d8168961": {
+        "model": {
+          "trigger": {
+            "id": "sub_model_a9f89b48-be8a-41a7-b093-c982d8168961",
+            "name": "",
+            "outgoing_flow": "flow_cbd88206-c638-4700-b6bc-22d5a7f24b16",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "flow_0d5bd88f-5f28-41a8-b432-24f7ded2cd6f": {
+              "source": "UpdateVariable",
+              "target": "end",
+              "condition": {}
+            },
+            "flow_a760f999-f872-42a7-bcfa-14a4a0706ed5": {
+              "source": "activity_f96af37a-6c17-40a0-af44-068518e282fa",
+              "target": "UpdateVariable",
+              "condition": {}
+            },
+            "flow_cbd88206-c638-4700-b6bc-22d5a7f24b16": {
+              "source": "trigger",
+              "target": "activity_f96af37a-6c17-40a0-af44-068518e282fa",
+              "condition": {}
+            }
+          },
+          "activities": {
+            "UpdateVariable": {
+              "id": "6c6eab39063fa3b72d98c82af60deb8a",
+              "class": "UpdateVariable",
+              "name": "Update variable",
+              "flows": {
+                "incoming": "flow_a760f999-f872-42a7-bcfa-14a4a0706ed5",
+                "outgoing": "flow_0d5bd88f-5f28-41a8-b432-24f7ded2cd6f"
+              },
+              "properties": {
+                "WorkflowCustomVariable": {
+                  "combined": "${//this is how to append multiple values to an array\n//to append only one value, remove the brackets\n[data['activity_f96af37a-6c17-40a0-af44-068518e282fa.Device.GetDetails.Domain'], data['activity_f96af37a-6c17-40a0-af44-068518e282fa.Device.GetDetails.AgentVersion']]}"
+                }
+              },
+              "version_constraint": "~1"
+            },
+            "activity_f96af37a-6c17-40a0-af44-068518e282fa": {
+              "id": "6265dc947cc2252f74a5f25261ac36a9",
+              "name": "Get device details",
+              "flows": {
+                "incoming": "flow_cbd88206-c638-4700-b6bc-22d5a7f24b16",
+                "outgoing": "flow_a760f999-f872-42a7-bcfa-14a4a0706ed5"
+              },
+              "properties": {
+                "device_id": "${activity_baf5e0ec-0571-48c8-8017-3152fb7756d2.Device.query.devices.#}"
+              }
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "flow_0d5bd88f-5f28-41a8-b432-24f7ded2cd6f"
+            ],
+            "output_fields": [
+              "WorkflowCustomVariable.combined"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "activity_baf5e0ec-0571-48c8-8017-3152fb7756d2.Device.query.devices",
+          "array_field_display_name": "Sensor IDs",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0,
+          "sequential": true
+        },
+        "name": "For each Sensor IDs; Sequentially",
+        "flows": {
+          "incoming": "flow_0308bd13-432c-41b7-8007-833571d81774",
+          "outgoing": "flow_63264cd1-ca4c-4e1c-83d7-395eba04efcf"
+        }
+      }
+    }
+  },
+  "use_cases": [
+    "Email security",
+    "Utilities"
+  ],
+  "vendors": [
+    "CrowdStrike"
+  ],
+  "complexity": 4,
+  "trigger_type": "On demand",
+  "id": "fcc5a841a7ca411e8fea930983af6b58",
+  "version": "0.124.1",
+  "created_timestamp": "2025-12-17T16:56:13.62962732Z",
+  "last_modified_timestamp": "2025-12-17T16:56:13.601236292Z",
+  "activities": [
+    {
+      "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+      "name": "Create variable"
+    },
+    {
+      "id": "68ffa99af40c84b36462daa076f535d0",
+      "name": "Device Query"
+    },
+    {
+      "id": "6c6eab39063fa3b72d98c82af60deb8a",
+      "name": "Update variable"
+    },
+    {
+      "id": "6265dc947cc2252f74a5f25261ac36a9",
+      "name": "Get device details"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

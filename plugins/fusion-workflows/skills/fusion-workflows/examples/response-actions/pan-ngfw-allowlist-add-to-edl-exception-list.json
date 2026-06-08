@@ -1,0 +1,158 @@
+{
+  "name": "PAN NGFW - Allowlist - Add to EDL Exception List",
+  "description": "Adds an exception entry (IP, domain, or URL) to a specified External Dynamic List (EDL) on a PAN NGFW firewall, then commits the configuration. Use this to allowlist an indicator that would otherwise be blocked by an EDL-based security policy.",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "FROM_trigger_TO_SetEDLException",
+      "parameters": {
+        "properties": {
+          "EDLName": {
+            "type": "string",
+            "description": "Exact name of the EDL object on the firewall to add the exception to"
+          },
+          "EntryValue": {
+            "type": "string",
+            "description": "IP address, domain, or URL to add to the exception list (e.g. 1.2.3.4)"
+          },
+          "FirewallIP": {
+            "type": "string",
+            "description": "IP address or hostname of the PAN NGFW management interface"
+          }
+        },
+        "required": [
+          "EDLName",
+          "EntryValue",
+          "FirewallIP"
+        ],
+        "type": "object"
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "FROM_trigger_TO_SetEDLException": {
+        "source": "trigger",
+        "target": "SetEDLException",
+        "condition": {}
+      },
+      "flow_98f32cbc-83d1-47ae-995b-8782f138d4fb": {
+        "source": "CommitConfiguration",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_bbb517ce-aa59-4b79-bb0e-35b4484378cf": {
+        "source": "SetEDLException",
+        "target": "CommitConfiguration",
+        "condition": {}
+      }
+    },
+    "activities": {
+      "CommitConfiguration": {
+        "id": "50b8a7cc77ea4ebb9d0bbe96d8def095",
+        "class": "Inline.HTTPRequest",
+        "name": "Commit Configuration",
+        "flows": {
+          "incoming": "flow_bbb517ce-aa59-4b79-bb0e-35b4484378cf",
+          "outgoing": "flow_98f32cbc-83d1-47ae-995b-8782f138d4fb"
+        },
+        "properties": {
+          "authentication_option": "UseExisting",
+          "definition_id": "31fd9a5893df4127b93f9d27e80a1ea9",
+          "deployment_model": "on_prem",
+          "http_transaction": {
+            "request_body": "{}",
+            "request_content_type": "JSON",
+            "request_headers": {},
+            "request_http_method": "POST",
+            "request_query": {
+              "065101a4-20c5-4861-a03b-a858a6289c10": {
+                "name": "cmd",
+                "value": "<commit></commit>"
+              },
+              "67549652-6f62-4f51-b959-d3241f203238": {
+                "name": "type",
+                "value": "commit"
+              }
+            },
+            "request_url": "https://${data['FirewallIP']}/api",
+            "response_body": "",
+            "response_status_code": 200
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "SetEDLException": {
+        "id": "50b8a7cc77ea4ebb9d0bbe96d8def095",
+        "class": "Inline.HTTPRequest",
+        "name": "Set EDL Exception",
+        "flows": {
+          "incoming": "FROM_trigger_TO_SetEDLException",
+          "outgoing": "flow_bbb517ce-aa59-4b79-bb0e-35b4484378cf"
+        },
+        "properties": {
+          "authentication_option": "UseExisting",
+          "definition_id": "31fd9a5893df4127b93f9d27e80a1ea9",
+          "deployment_model": "on_prem",
+          "host_group_id": "4775ad67cafd4edb90aa9d250678c871",
+          "http_transaction": {
+            "request_body": "{}",
+            "request_content_type": "JSON",
+            "request_headers": {},
+            "request_http_method": "POST",
+            "request_query": {
+              "1e79e667-45ce-4bb6-90c0-3d8082954b35": {
+                "name": "type",
+                "value": "config"
+              },
+              "6add92e5-3fb1-450a-9616-af2d6ebc06b8": {
+                "name": "action",
+                "value": "set"
+              },
+              "b7b4d751-f536-4629-a065-a895848320b9": {
+                "name": "element",
+                "value": "<member>${data['EntryValue']}</member>"
+              },
+              "fe204fdb-9a8b-4aec-91d1-b58ddf50b532": {
+                "name": "xpath",
+                "value": "/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']/external-list/entry[@name='${data['EDLName']}']/exception"
+              }
+            },
+            "request_url": "https://${data['FirewallIP']}/api",
+            "response_body": "",
+            "response_status_code": 200
+          },
+          "insecure_skip_verify": true
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_98f32cbc-83d1-47ae-995b-8782f138d4fb"
+      ]
+    }
+  },
+  "use_cases": [
+    "Network security"
+  ],
+  "vendors": [
+    "CrowdStrike",
+    "Palo Alto Networks"
+  ],
+  "complexity": 1,
+  "trigger_type": "On demand",
+  "id": "b7d07e75545843ba86fd89ad5a262f85",
+  "version": "0.208.0",
+  "created_timestamp": "2026-04-17T10:44:30.210687013Z",
+  "last_modified_timestamp": "2026-04-17T10:44:33.043578763Z",
+  "activities": [
+    {
+      "id": "50b8a7cc77ea4ebb9d0bbe96d8def095",
+      "name": "On-Premises HTTP Request"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}
