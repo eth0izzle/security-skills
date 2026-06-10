@@ -1,0 +1,170 @@
+{
+  "name": "Introduction to Receive Email trigger: How to create a lookup file from an email attachment",
+  "description": "Learn how to create a lookup file from a file attachment. Requires user has setup the O365 Monitored Mailbox app from the CrowdStrike store.",
+  "feature_flag": "cloud-workflow-trigger-ms-monitored-email",
+  "model": {
+    "trigger": {
+      "id": "5495b4a0ea58a537a9583d4ee5a57f76",
+      "name": "Receive email",
+      "outgoing_flow": "flow_3f2dc88e-adf7-41f6-b393-16caa468b6f4",
+      "trigger_type": "Signal",
+      "version_constraint": "~1",
+      "mock_output": {
+        "node_mock_id": "",
+        "enabled": false
+      }
+    },
+    "flows": {
+      "flow_084b9bfe-2483-49f6-b9cb-e30e69c95a11": {
+        "source": "PrintData",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_3cd4f710-15b5-497f-b65a-38ce30ed5b40": {
+        "source": "CreateLookupFileWithoutLoop",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_3f2dc88e-adf7-41f6-b393-16caa468b6f4": {
+        "source": "trigger",
+        "target": "gateway_decision_ae829b82-ef89-45bf-85e8-8340bd762510",
+        "condition": {}
+      },
+      "flow_83ed5d05-e310-43ed-af2a-92feb75e9903": {
+        "source": "gateway_decision_ae829b82-ef89-45bf-85e8-8340bd762510",
+        "target": "PrintData",
+        "condition": {}
+      },
+      "flow_b2d4ff30-0f39-4d84-bc04-bb9577dbec74": {
+        "source": "gateway_decision_ae829b82-ef89-45bf-85e8-8340bd762510",
+        "target": "CreateLookupFileWithoutLoop",
+        "condition": {
+          "cel_expression": "data['Trigger.MonitoredEmail.AttachmentFiles'] != null &&\ndata['Trigger.MonitoredEmail.AttachmentFiles'].exists(s,\n  s != null && s != '' &&\n  cs.json.valid(s) &&\n  cs.json.decode(s)['Name'] != null &&\n  cs.json.decode(s)['Name'] != '' &&\n  cs.json.decode(s)['Name'].endsWith('.csv')\n)",
+          "display": [
+            "data[&#39;Trigger.MonitoredEmail.AttachmentFiles&#39;] != null &amp;&amp;\ndata[&#39;Trigger.MonitoredEmail.AttachmentFiles&#39;].exists(s,\n  s != null &amp;&amp; s != &#39;&#39; &amp;&amp;\n  cs.json.valid(s) &amp;&amp;\n  cs.json.decode(s)[&#39;Name&#39;] != null &amp;&amp;\n  cs.json.decode(s)[&#39;Name&#39;] != &#39;&#39; &amp;&amp;\n  cs.json.decode(s)[&#39;Name&#39;].endsWith(&#39;.csv&#39;)\n)"
+          ]
+        },
+        "position": {
+          "x": 0,
+          "y": 192,
+          "anchor": ""
+        }
+      }
+    },
+    "gateways": {
+      "gateway_decision_ae829b82-ef89-45bf-85e8-8340bd762510": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_3f2dc88e-adf7-41f6-b393-16caa468b6f4"
+          ],
+          "outgoing": [
+            "flow_b2d4ff30-0f39-4d84-bc04-bb9577dbec74",
+            "flow_83ed5d05-e310-43ed-af2a-92feb75e9903"
+          ],
+          "default": "flow_83ed5d05-e310-43ed-af2a-92feb75e9903"
+        }
+      }
+    },
+    "activities": {
+      "CreateLookupFileWithoutLoop": {
+        "id": "51c4db34ab30465f796d7550f3e3e97b",
+        "name": "create lookup file without loop",
+        "flows": {
+          "incoming": "flow_b2d4ff30-0f39-4d84-bc04-bb9577dbec74",
+          "outgoing": "flow_3cd4f710-15b5-497f-b65a-38ce30ed5b40"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "position": {
+          "x": 90.4376885948269,
+          "y": 1032.0868262960423,
+          "anchor": ""
+        },
+        "properties": {
+          "lookup_file_content_file": "${data['Trigger.MonitoredEmail.AttachmentFiles'][0]}",
+          "lookup_file_content_type": "file",
+          "lookup_file_name": "${cs.json.decode(data['Trigger.MonitoredEmail.AttachmentFiles'][0]).Name}",
+          "lookup_file_repo": "search-all"
+        },
+        "version_constraint": "~1"
+      },
+      "PrintData": {
+        "id": "aadbf530e35fc452a032f5f8acaaac2a",
+        "name": "Print data",
+        "flows": {
+          "incoming": "flow_83ed5d05-e310-43ed-af2a-92feb75e9903",
+          "outgoing": "flow_084b9bfe-2483-49f6-b9cb-e30e69c95a11"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "position": {
+          "x": 600,
+          "y": 596.0001,
+          "anchor": ""
+        },
+        "properties": {
+          "text_data": "Attachment file types are not .csv${data['Trigger.MonitoredEmail.AttachmentFiles'] != null ?\n  data['Trigger.MonitoredEmail.AttachmentFiles']\n    .transformList(i, a, cs.json.decode(a).Name)\n    .join(', ') :\n  ''}"
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_3cd4f710-15b5-497f-b65a-38ce30ed5b40",
+        "flow_084b9bfe-2483-49f6-b9cb-e30e69c95a11"
+      ]
+    }
+  },
+  "use_cases": [
+    "Email Security"
+  ],
+  "vendors": [
+    "Microsoft",
+    "CrowdStrike"
+  ],
+  "complexity": 2,
+  "trigger_type": "Event",
+  "disconnected_nodes": [
+    {
+      "comment": "If multiple attachments are sent, then use a loop else this workflow creates a lookup file from the first attachment returned. ",
+      "id": "notes_877d2b05-ee29-49b1-8af2-4a1eb3606a47",
+      "node_type": "notes",
+      "position": {
+        "x": 412,
+        "y": 251
+      }
+    },
+    {
+      "comment": "Prior to using this workflow, setup the Monitored Mailbox app from the Unified Content Library",
+      "id": "notes_8c13fa1a-ce3d-42f7-ae9a-81ddf774292f",
+      "node_type": "notes",
+      "position": {
+        "x": 409,
+        "y": -2
+      }
+    }
+  ],
+  "id": "b12ee742fa5a406a8cc7baa66b7bdae4",
+  "version": "0.193.0",
+  "created_timestamp": "2026-03-16T23:19:26.297094692Z",
+  "last_modified_timestamp": "2026-03-16T23:19:27.528875808Z",
+  "activities": [
+    {
+      "id": "51c4db34ab30465f796d7550f3e3e97b",
+      "name": "Create lookup file"
+    },
+    {
+      "id": "aadbf530e35fc452a032f5f8acaaac2a",
+      "name": "Print data"
+    }
+  ],
+  "trigger": {
+    "id": "5495b4a0ea58a537a9583d4ee5a57f76",
+    "name": "Receive email"
+  }
+}

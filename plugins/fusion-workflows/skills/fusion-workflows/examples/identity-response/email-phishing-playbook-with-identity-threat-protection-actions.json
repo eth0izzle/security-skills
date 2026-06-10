@@ -1,0 +1,1001 @@
+{
+  "name": "Email phishing playbook with Identity Threat Protection actions",
+  "description": "Quickly enrich, investigate, and remediate user-reported phishing emails by enriching indicators observed in the email and detonating attachments with first and third party enrichment sources such as APIVoid, VirusTotal, and Falcon sandbox. This playbook includes actions exclusive to Identity Threat Protection allowing users to enrich the email addresses and check for user risk before taking an identity-based remediation action. Note: Customize per your phishing requirements prior to enabling.",
+  "feature_flag": "cao-enable-sandbox-fusion-playbooks",
+  "labels": [
+    "Email Security"
+  ],
+  "model": {
+    "trigger": {
+      "id": "b332aa1de01cab51373501ff797d7d14",
+      "name": "Phishing email > Microsoft O365",
+      "outgoing_flow": "flow_FROM_trigger_TO_activity_find_phishing_emails_processed_by_workflows_711fa954",
+      "trigger_type": "Signal"
+    },
+    "flows": {
+      "flow_0323647c-d6d7-4454-8a29-a19d58ee7d75": {
+        "source": "sub_model_cead5ea3-f689-4350-bee5-91eb20721220",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_1e944a3d-e1b3-4fb1-9b7c-b1ef53c2c735": {
+        "source": "sub_model_category_phishingemail_attachmentfilesha256_6d4a4d00",
+        "target": "SendMicrosoftTeamsMessage",
+        "condition": {}
+      },
+      "flow_2d5a5deb-46a2-4a61-98c8-6aa2cbb795ff": {
+        "source": "activity_c63a920e-8064-410b-849c-380c045a3215",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_399e790d-21f4-4577-8aa3-e27994e7374f": {
+        "source": "gateway_parallel_ba36da22-a2b7-4095-9c76-036310957f72",
+        "target": "activity_c63a920e-8064-410b-849c-380c045a3215",
+        "condition": {}
+      },
+      "flow_7bea47c2-3a9b-466b-b9cf-17b0b00f3ef8": {
+        "source": "SendMicrosoftTeamsMessage",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_91f8196b-9a36-4bdf-992f-d3aeb76f0849": {
+        "source": "gateway_decision_762a465b-ce7c-496b-988b-259900636bd8",
+        "target": "activity_6e702455-00c9-4b2d-a417-0eb15b7fe2e7",
+        "condition": {
+          "expression": "activity_a805fe6d-88e4-423d-83cd-3e516bd8960b.Enrich.User.RiskSeverity:'High'",
+          "display": [
+            "User risk severity is equal to High"
+          ]
+        }
+      },
+      "flow_FROM_activity_create_custom_domain_ioc_245e3203_TO_end": {
+        "source": "activity_create_custom_domain_ioc_245e3203",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_FROM_activity_enrich_domain_af30a054_TO_gateway_condition_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da": {
+        "source": "activity_enrich_domain_af30a054",
+        "target": "gateway_condition_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da",
+        "condition": {}
+      },
+      "flow_FROM_activity_find_phishing_emails_processed_by_workflows_711fa954_TO_gateway_condition_unformatted_results_is_equal_to__fb010b32": {
+        "source": "activity_find_phishing_emails_processed_by_workflows_711fa954",
+        "target": "gateway_condition_unformatted_results_is_equal_to__fb010b32",
+        "condition": {}
+      },
+      "flow_FROM_activity_write_to_log_repo_c969b889_TO_gateway_parallel_action_write_to_log_repo_c969b889": {
+        "source": "activity_write_to_log_repo_c969b889",
+        "target": "gateway_parallel_action_write_to_log_repo_c969b889",
+        "condition": {}
+      },
+      "flow_FROM_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da_TO_activity_create_custom_domain_ioc_245e3203": {
+        "source": "gateway_condition_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da",
+        "target": "gateway_parallel_ba36da22-a2b7-4095-9c76-036310957f72",
+        "condition": {
+          "expression": "activity_enrich_domain_af30a054.API_Integration.Custom_APIVoid.Enrich_Domain.body.data.report.risk_score.result:>=80",
+          "display": [
+            "Body data report risk score result is greater than or equal to 80"
+          ]
+        }
+      },
+      "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_activity_enrich_domain_af30a054": {
+        "source": "gateway_parallel_action_write_to_log_repo_c969b889",
+        "target": "activity_enrich_domain_af30a054",
+        "condition": {}
+      },
+      "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_attachmentfilesha256_6d4a4d00": {
+        "source": "gateway_parallel_action_write_to_log_repo_c969b889",
+        "target": "sub_model_category_phishingemail_attachmentfilesha256_6d4a4d00",
+        "condition": {}
+      },
+      "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df": {
+        "source": "gateway_parallel_action_write_to_log_repo_c969b889",
+        "target": "sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df",
+        "condition": {}
+      },
+      "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_weburlsinemailbody_e0b78203": {
+        "source": "gateway_parallel_action_write_to_log_repo_c969b889",
+        "target": "sub_model_category_phishingemail_weburlsinemailbody_e0b78203",
+        "condition": {}
+      },
+      "flow_FROM_sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df_TO_end": {
+        "source": "sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_FROM_sub_model_category_phishingemail_weburlsinemailbody_e0b78203_TO_end": {
+        "source": "sub_model_category_phishingemail_weburlsinemailbody_e0b78203",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_FROM_trigger_TO_activity_find_phishing_emails_processed_by_workflows_711fa954": {
+        "source": "trigger",
+        "target": "activity_find_phishing_emails_processed_by_workflows_711fa954",
+        "condition": {}
+      },
+      "flow_FROM_unformatted_results_is_equal_to__fb010b32_TO_activity_write_to_log_repo_c969b889": {
+        "source": "gateway_condition_unformatted_results_is_equal_to__fb010b32",
+        "target": "activity_write_to_log_repo_c969b889",
+        "condition": {
+          "expression": "activity_find_phishing_emails_processed_by_workflows_711fa954.EventSearch.phishing_emails.raw_results:'[]'",
+          "display": [
+            "Unformatted results is equal to []"
+          ]
+        }
+      },
+      "flow_a83583aa-5748-4a8f-b305-1ad5823c191a": {
+        "source": "activity_a805fe6d-88e4-423d-83cd-3e516bd8960b",
+        "target": "gateway_decision_762a465b-ce7c-496b-988b-259900636bd8",
+        "condition": {}
+      },
+      "flow_c92930d7-0984-4c39-a277-8e29ba9d2fed": {
+        "source": "gateway_parallel_action_write_to_log_repo_c969b889",
+        "target": "sub_model_cead5ea3-f689-4350-bee5-91eb20721220",
+        "condition": {}
+      },
+      "flow_ca05480f-d3a2-46e6-811b-88d03afcb4b7": {
+        "source": "activity_6e702455-00c9-4b2d-a417-0eb15b7fe2e7",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_e07904ed-353a-416f-ac1a-8fac11c485ce": {
+        "source": "gateway_parallel_ba36da22-a2b7-4095-9c76-036310957f72",
+        "target": "activity_create_custom_domain_ioc_245e3203",
+        "condition": {}
+      },
+      "flow_e159a48c-1010-4ed3-a8e0-618662663641": {
+        "source": "gateway_parallel_action_write_to_log_repo_c969b889",
+        "target": "activity_a805fe6d-88e4-423d-83cd-3e516bd8960b",
+        "condition": {}
+      }
+    },
+    "gateways": {
+      "gateway_condition_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_FROM_activity_enrich_domain_af30a054_TO_gateway_condition_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da"
+          ],
+          "outgoing": [
+            "flow_FROM_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da_TO_activity_create_custom_domain_ioc_245e3203"
+          ]
+        }
+      },
+      "gateway_condition_unformatted_results_is_equal_to__fb010b32": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_FROM_activity_find_phishing_emails_processed_by_workflows_711fa954_TO_gateway_condition_unformatted_results_is_equal_to__fb010b32"
+          ],
+          "outgoing": [
+            "flow_FROM_unformatted_results_is_equal_to__fb010b32_TO_activity_write_to_log_repo_c969b889"
+          ]
+        }
+      },
+      "gateway_decision_762a465b-ce7c-496b-988b-259900636bd8": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_a83583aa-5748-4a8f-b305-1ad5823c191a"
+          ],
+          "outgoing": [
+            "flow_91f8196b-9a36-4bdf-992f-d3aeb76f0849"
+          ]
+        }
+      },
+      "gateway_parallel_action_write_to_log_repo_c969b889": {
+        "type": "parallel",
+        "flows": {
+          "incoming": [
+            "flow_FROM_activity_write_to_log_repo_c969b889_TO_gateway_parallel_action_write_to_log_repo_c969b889"
+          ],
+          "outgoing": [
+            "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_weburlsinemailbody_e0b78203",
+            "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_attachmentfilesha256_6d4a4d00",
+            "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df",
+            "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_activity_enrich_domain_af30a054",
+            "flow_c92930d7-0984-4c39-a277-8e29ba9d2fed",
+            "flow_e159a48c-1010-4ed3-a8e0-618662663641"
+          ]
+        }
+      },
+      "gateway_parallel_ba36da22-a2b7-4095-9c76-036310957f72": {
+        "type": "parallel",
+        "flows": {
+          "incoming": [
+            "flow_FROM_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da_TO_activity_create_custom_domain_ioc_245e3203"
+          ],
+          "outgoing": [
+            "flow_e07904ed-353a-416f-ac1a-8fac11c485ce",
+            "flow_399e790d-21f4-4577-8aa3-e27994e7374f"
+          ]
+        }
+      }
+    },
+    "activities": {
+      "SendMicrosoftTeamsMessage": {
+        "id": "79f1d0f02d119366cad377067d71fb5f",
+        "name": "Send Microsoft Teams message",
+        "flows": {
+          "incoming": "flow_1e944a3d-e1b3-4fb1-9b7c-b1ef53c2c735",
+          "outgoing": "flow_7bea47c2-3a9b-466b-b9cf-17b0b00f3ef8"
+        },
+        "properties": {
+          "_fields": [
+            "${Workflow.Definition.Name}",
+            "${Workflow.Execution.Time}"
+          ],
+          "full_width": true,
+          "msg": "Attachment quarantined, sender blocked, URLs analyzed, and user marked as risky",
+          "skip_workflow_header": false,
+          "title": "Email Phishing playbook triggered"
+        },
+        "version_constraint": "~1"
+      },
+      "activity_6e702455-00c9-4b2d-a417-0eb15b7fe2e7": {
+        "id": "68819ad0d42d40d2bc41d8bf500aaa5f",
+        "name": "Entra ID - Mark User as Risky - 2",
+        "flows": {
+          "incoming": "flow_91f8196b-9a36-4bdf-992f-d3aeb76f0849",
+          "outgoing": "flow_ca05480f-d3a2-46e6-811b-88d03afcb4b7"
+        },
+        "properties": {
+          "config_id": "438bebbfff99466a9a06a7681683d387",
+          "json": {
+            "userIds": [
+              "${activity_a805fe6d-88e4-423d-83cd-3e516bd8960b.Enrich.User.UserEntraObjectID}"
+            ]
+          },
+          "params": {
+            "header": {
+              "Content-Type": "application/json"
+            }
+          }
+        }
+      },
+      "activity_a805fe6d-88e4-423d-83cd-3e516bd8960b": {
+        "id": "19c7e2af0a24f468be7797fe180c8329",
+        "name": "Get user identity context - 2",
+        "flows": {
+          "incoming": "flow_e159a48c-1010-4ed3-a8e0-618662663641",
+          "outgoing": "flow_a83583aa-5748-4a8f-b305-1ad5823c191a"
+        },
+        "properties": {
+          "email": "${Trigger.Category.PhishingEmail.FromEmail}"
+        }
+      },
+      "activity_c63a920e-8064-410b-849c-380c045a3215": {
+        "id": "5aaf2c9c6acb4c94a417669c8d481669",
+        "name": "Add Sender to Org Block List with Proofpoint",
+        "flows": {
+          "incoming": "flow_399e790d-21f4-4577-8aa3-e27994e7374f",
+          "outgoing": "flow_2d5a5deb-46a2-4a61-98c8-6aa2cbb795ff"
+        },
+        "properties": {
+          "json": {
+            "attribute": "$host",
+            "operator": "equal",
+            "value": "${Trigger.Category.PhishingEmail.FromDomain}"
+          }
+        }
+      },
+      "activity_create_custom_domain_ioc_245e3203": {
+        "id": "ecdace64ddcdc78030544a75fa766b0e",
+        "name": "Create Custom Domain IOC",
+        "flows": {
+          "incoming": "flow_e07904ed-353a-416f-ac1a-8fac11c485ce",
+          "outgoing": "flow_FROM_activity_create_custom_domain_ioc_245e3203_TO_end"
+        },
+        "properties": {
+          "action_type": "detect",
+          "domain": "${Trigger.Category.PhishingEmail.FromDomain}",
+          "expiration_ttl": "168h",
+          "mobile_action": "detect",
+          "platforms": [
+            "windows",
+            "linux"
+          ],
+          "severity": "medium"
+        }
+      },
+      "activity_enrich_domain_af30a054": {
+        "id": "18eb9bee7aa64071b2dd5f9829db681f",
+        "name": "Enrich Domain",
+        "flows": {
+          "incoming": "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_activity_enrich_domain_af30a054",
+          "outgoing": "flow_FROM_activity_enrich_domain_af30a054_TO_gateway_condition_body_data_report_risk_score_result_is_greater_than_or_equal_to_80_16f428da"
+        },
+        "properties": {
+          "params": {
+            "query": {
+              "host": "${Trigger.Category.PhishingEmail.FromDomain}"
+            }
+          }
+        }
+      },
+      "activity_find_phishing_emails_processed_by_workflows_711fa954": {
+        "id": "69d872bffa2d42d7af42c21263922f16",
+        "name": "Find phishing emails processed by workflows",
+        "flows": {
+          "incoming": "flow_FROM_trigger_TO_activity_find_phishing_emails_processed_by_workflows_711fa954",
+          "outgoing": "flow_FROM_activity_find_phishing_emails_processed_by_workflows_711fa954_TO_gateway_condition_unformatted_results_is_equal_to__fb010b32"
+        },
+        "properties": {
+          "email_sha256_hash": "${Trigger.Category.PhishingEmail.EmailHash}",
+          "latest": "${Workflow.Execution.Time}",
+          "search_timeframe_minutes": 10080
+        }
+      },
+      "activity_write_to_log_repo_c969b889": {
+        "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+        "name": "Write to log repo",
+        "flows": {
+          "incoming": "flow_FROM_unformatted_results_is_equal_to__fb010b32_TO_activity_write_to_log_repo_c969b889",
+          "outgoing": "flow_FROM_activity_write_to_log_repo_c969b889_TO_gateway_parallel_action_write_to_log_repo_c969b889"
+        },
+        "properties": {
+          "custom_json": {
+            "email": {
+              "attachments": {
+                "sha256": "${Trigger.Category.PhishingEmail.AttachmentFileSHA256}"
+              },
+              "content_sha256_hash": "${Trigger.Category.PhishingEmail.EmailHash}",
+              "from": {
+                "address": "${Trigger.Category.PhishingEmail.FromEmail}"
+              },
+              "local_id": "${Trigger.SourceEventID}",
+              "subject": "${Trigger.Category.PhishingEmail.Subject}"
+            }
+          },
+          "remove_action_prefix": true
+        }
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_FROM_sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df_TO_end",
+        "flow_FROM_sub_model_category_phishingemail_weburlsinemailbody_e0b78203_TO_end",
+        "flow_0323647c-d6d7-4454-8a29-a19d58ee7d75",
+        "flow_2d5a5deb-46a2-4a61-98c8-6aa2cbb795ff",
+        "flow_FROM_activity_create_custom_domain_ioc_245e3203_TO_end",
+        "flow_ca05480f-d3a2-46e6-811b-88d03afcb4b7",
+        "flow_7bea47c2-3a9b-466b-b9cf-17b0b00f3ef8"
+      ]
+    },
+    "sub_models": {
+      "sub_model_category_phishingemail_attachmentfilesha256_6d4a4d00": {
+        "model": {
+          "trigger": {
+            "id": "sub_model_category_phishingemail_attachmentfilesha256_6d4a4d00",
+            "name": "",
+            "outgoing_flow": "flow_FROM_trigger_TO_activity_virustotal_file_hash_lookup_ea8fd3e7",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "flow_FROM_activity_create_custom_hash_ioc_e3a8a14c_TO_end": {
+              "source": "activity_create_custom_hash_ioc_e3a8a14c",
+              "target": "end",
+              "condition": {}
+            },
+            "flow_FROM_activity_get_processes_associated_with_a_sha256_hash_71710816_TO_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816": {
+              "source": "activity_get_processes_associated_with_a_sha256_hash_71710816",
+              "target": "gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816",
+              "condition": {}
+            },
+            "flow_FROM_activity_virustotal_file_hash_lookup_ea8fd3e7_TO_gateway_condition_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52": {
+              "source": "activity_virustotal_file_hash_lookup_ea8fd3e7",
+              "target": "gateway_condition_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52",
+              "condition": {}
+            },
+            "flow_FROM_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816_TO_activity_create_custom_hash_ioc_e3a8a14c": {
+              "source": "gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816",
+              "target": "activity_create_custom_hash_ioc_e3a8a14c",
+              "condition": {}
+            },
+            "flow_FROM_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816_TO_sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5": {
+              "source": "gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816",
+              "target": "sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5",
+              "condition": {}
+            },
+            "flow_FROM_sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5_TO_end": {
+              "source": "sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5",
+              "target": "end",
+              "condition": {}
+            },
+            "flow_FROM_trigger_TO_activity_virustotal_file_hash_lookup_ea8fd3e7": {
+              "source": "trigger",
+              "target": "activity_virustotal_file_hash_lookup_ea8fd3e7",
+              "condition": {}
+            },
+            "flow_FROM_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52_TO_activity_get_processes_associated_with_a_sha256_hash_71710816": {
+              "source": "gateway_condition_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52",
+              "target": "activity_get_processes_associated_with_a_sha256_hash_71710816",
+              "condition": {
+                "expression": "activity_virustotal_file_hash_lookup_ea8fd3e7.VirusTotal.HashLookup.malicious_percentage:>=75",
+                "display": [
+                  "VirusTotal Malicious Percentage is greater than or equal to 75"
+                ]
+              }
+            }
+          },
+          "gateways": {
+            "gateway_condition_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52": {
+              "type": "exclusive",
+              "flows": {
+                "incoming": [
+                  "flow_FROM_activity_virustotal_file_hash_lookup_ea8fd3e7_TO_gateway_condition_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52"
+                ],
+                "outgoing": [
+                  "flow_FROM_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52_TO_activity_get_processes_associated_with_a_sha256_hash_71710816"
+                ]
+              }
+            },
+            "gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816": {
+              "type": "parallel",
+              "flows": {
+                "incoming": [
+                  "flow_FROM_activity_get_processes_associated_with_a_sha256_hash_71710816_TO_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816"
+                ],
+                "outgoing": [
+                  "flow_FROM_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816_TO_sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5",
+                  "flow_FROM_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816_TO_activity_create_custom_hash_ioc_e3a8a14c"
+                ]
+              }
+            }
+          },
+          "activities": {
+            "activity_create_custom_hash_ioc_e3a8a14c": {
+              "id": "557d9de82413677873ceb2e0d5480507",
+              "name": "Create Custom Hash IOC",
+              "flows": {
+                "incoming": "flow_FROM_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816_TO_activity_create_custom_hash_ioc_e3a8a14c",
+                "outgoing": "flow_FROM_activity_create_custom_hash_ioc_e3a8a14c_TO_end"
+              },
+              "properties": {
+                "action_type": "prevent",
+                "expiration_ttl": "168h",
+                "hash": "${Trigger.Category.PhishingEmail.AttachmentFileSHA256.#}",
+                "mobile_action": "prevent",
+                "platforms": [
+                  "windows",
+                  "linux"
+                ],
+                "severity": "medium"
+              }
+            },
+            "activity_get_processes_associated_with_a_sha256_hash_71710816": {
+              "id": "39ebbf77fd1d680c5ecbc790659dd4b0",
+              "name": "Get processes associated with a sha256 hash",
+              "flows": {
+                "incoming": "flow_FROM_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52_TO_activity_get_processes_associated_with_a_sha256_hash_71710816",
+                "outgoing": "flow_FROM_activity_get_processes_associated_with_a_sha256_hash_71710816_TO_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816"
+              },
+              "properties": {
+                "indicator": "${Trigger.Category.PhishingEmail.AttachmentFileSHA256.#}"
+              }
+            },
+            "activity_virustotal_file_hash_lookup_ea8fd3e7": {
+              "id": "668bf0d0b832510e21d7c00386d277ea",
+              "name": "VirusTotal File Hash Lookup",
+              "flows": {
+                "incoming": "flow_FROM_trigger_TO_activity_virustotal_file_hash_lookup_ea8fd3e7",
+                "outgoing": "flow_FROM_activity_virustotal_file_hash_lookup_ea8fd3e7_TO_gateway_condition_virustotal_malicious_percentage_is_greater_than_or_equal_to_75_7237fe52"
+              },
+              "properties": {
+                "hash": "${Trigger.Category.PhishingEmail.AttachmentFileSHA256.#}"
+              }
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "flow_FROM_activity_create_custom_hash_ioc_e3a8a14c_TO_end",
+              "flow_FROM_sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5_TO_end"
+            ]
+          },
+          "sub_models": {
+            "sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5": {
+              "model": {
+                "trigger": {
+                  "id": "sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5",
+                  "name": "",
+                  "outgoing_flow": "flow_FROM_trigger_TO_gateway_condition_process_terminated_instance_is_equal_to_no_1b1ccf70",
+                  "trigger_type": "SubModel"
+                },
+                "flows": {
+                  "flow_4ef7a902-92fd-4741-8f06-cdb867cdd9f8": {
+                    "source": "activity_aa10ab8b-03cd-426f-8410-64658bdcbe31",
+                    "target": "activity_1f6df532-df9a-4534-9c43-bb533c36f2bc",
+                    "condition": {}
+                  },
+                  "flow_9c6f147b-5263-4132-bbd5-2c71e90f598d": {
+                    "source": "activity_1f6df532-df9a-4534-9c43-bb533c36f2bc",
+                    "target": "activity_contain_device_ab3451d8",
+                    "condition": {}
+                  },
+                  "flow_FROM_activity_contain_device_ab3451d8_TO_end": {
+                    "source": "activity_contain_device_ab3451d8",
+                    "target": "end",
+                    "condition": {}
+                  },
+                  "flow_FROM_process_terminated_instance_is_equal_to_no_1b1ccf70_TO_activity_contain_device_ab3451d8": {
+                    "source": "gateway_condition_process_terminated_instance_is_equal_to_no_1b1ccf70",
+                    "target": "activity_aa10ab8b-03cd-426f-8410-64658bdcbe31",
+                    "condition": {
+                      "expression": "activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.ProcessTerminated:false",
+                      "display": [
+                        "Process terminated instance is equal to No"
+                      ]
+                    }
+                  },
+                  "flow_FROM_trigger_TO_gateway_condition_process_terminated_instance_is_equal_to_no_1b1ccf70": {
+                    "source": "trigger",
+                    "target": "gateway_condition_process_terminated_instance_is_equal_to_no_1b1ccf70",
+                    "condition": {}
+                  },
+                  "flow_bf72d260-b11a-41ad-a06f-8624ad64ee5d": {
+                    "source": "gateway_condition_process_terminated_instance_is_equal_to_no_1b1ccf70",
+                    "target": "activity_1cc06141-d3e2-467d-b9d2-92db7cbabf93",
+                    "condition": {}
+                  },
+                  "flow_d3b2506d-ef7e-4fff-9b0a-99599f65b1ea": {
+                    "source": "activity_1cc06141-d3e2-467d-b9d2-92db7cbabf93",
+                    "target": "end",
+                    "condition": {}
+                  }
+                },
+                "gateways": {
+                  "gateway_condition_process_terminated_instance_is_equal_to_no_1b1ccf70": {
+                    "type": "exclusive",
+                    "flows": {
+                      "incoming": [
+                        "flow_FROM_trigger_TO_gateway_condition_process_terminated_instance_is_equal_to_no_1b1ccf70"
+                      ],
+                      "outgoing": [
+                        "flow_FROM_process_terminated_instance_is_equal_to_no_1b1ccf70_TO_activity_contain_device_ab3451d8",
+                        "flow_bf72d260-b11a-41ad-a06f-8624ad64ee5d"
+                      ],
+                      "default": "flow_bf72d260-b11a-41ad-a06f-8624ad64ee5d"
+                    }
+                  }
+                },
+                "activities": {
+                  "activity_1cc06141-d3e2-467d-b9d2-92db7cbabf93": {
+                    "id": "1bf5b9585917e51f84f5c9f2ea1aea54",
+                    "name": "Remove file - 2",
+                    "flows": {
+                      "incoming": "flow_bf72d260-b11a-41ad-a06f-8624ad64ee5d",
+                      "outgoing": "flow_d3b2506d-ef7e-4fff-9b0a-99599f65b1ea"
+                    },
+                    "properties": {
+                      "device_id": "${activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.HostID}",
+                      "file_path": "${activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.ImageFileName}"
+                    }
+                  },
+                  "activity_1f6df532-df9a-4534-9c43-bb533c36f2bc": {
+                    "id": "1bf5b9585917e51f84f5c9f2ea1aea54",
+                    "name": "Remove file",
+                    "flows": {
+                      "incoming": "flow_4ef7a902-92fd-4741-8f06-cdb867cdd9f8",
+                      "outgoing": "flow_9c6f147b-5263-4132-bbd5-2c71e90f598d"
+                    },
+                    "properties": {
+                      "device_id": "${activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.HostID}",
+                      "file_path": "${activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.ImageFileName}"
+                    }
+                  },
+                  "activity_aa10ab8b-03cd-426f-8410-64658bdcbe31": {
+                    "id": "9ac54d8989c68dbf601acffe8444f7dc",
+                    "name": "Kill process",
+                    "flows": {
+                      "incoming": "flow_FROM_process_terminated_instance_is_equal_to_no_1b1ccf70_TO_activity_contain_device_ab3451d8",
+                      "outgoing": "flow_4ef7a902-92fd-4741-8f06-cdb867cdd9f8"
+                    },
+                    "properties": {
+                      "device_id": "${activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.HostID}",
+                      "process_id": "${activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.RawProcessId}"
+                    }
+                  },
+                  "activity_contain_device_ab3451d8": {
+                    "id": "bec9fbeb4999d207937854fd56088107",
+                    "name": "Contain device",
+                    "flows": {
+                      "incoming": "flow_9c6f147b-5263-4132-bbd5-2c71e90f598d",
+                      "outgoing": "flow_FROM_activity_contain_device_ab3451d8_TO_end"
+                    },
+                    "properties": {
+                      "device_id": "${activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes.#.HostID}"
+                    }
+                  }
+                },
+                "end": {
+                  "incoming_flows": [
+                    "flow_d3b2506d-ef7e-4fff-9b0a-99599f65b1ea",
+                    "flow_FROM_activity_contain_device_ab3451d8_TO_end"
+                  ]
+                }
+              },
+              "multi": {
+                "array_field": "activity_get_processes_associated_with_a_sha256_hash_71710816.ThreatGraph.ProcessesRanOnSha256.Processes",
+                "array_field_display_name": "Processes",
+                "continue_on_partial_execution": false,
+                "condition": {},
+                "max_execution_seconds": 0,
+                "max_iteration_count": 0
+              },
+              "name": "For each Processes; Concurrently",
+              "flows": {
+                "incoming": "flow_FROM_gateway_parallel_action_get_processes_associated_with_a_sha256_hash_71710816_TO_sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5",
+                "outgoing": "flow_FROM_sub_model_activity_71710816_a976_425f_96bc_9087ebb31eac_threatgraph_processesranonsha256_processes_d69ce9f5_TO_end"
+              }
+            }
+          }
+        },
+        "multi": {
+          "array_field": "Trigger.Category.PhishingEmail.AttachmentFileSHA256",
+          "array_field_display_name": "Attachment file SHA256",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0
+        },
+        "name": "For each Attachment file SHA256; Concurrently",
+        "flows": {
+          "incoming": "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_attachmentfilesha256_6d4a4d00",
+          "outgoing": "flow_1e944a3d-e1b3-4fb1-9b7c-b1ef53c2c735"
+        }
+      },
+      "sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df": {
+        "model": {
+          "trigger": {
+            "id": "sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df",
+            "name": "",
+            "outgoing_flow": "flow_FROM_trigger_TO_activity_enrich_ip_321aec38",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "flow_FROM_activity_create_custom_ip_ioc_213f3081_TO_end": {
+              "source": "activity_create_custom_ip_ioc_213f3081",
+              "target": "end",
+              "condition": {}
+            },
+            "flow_FROM_activity_enrich_ip_321aec38_TO_gateway_condition_risk_score_is_greater_than_or_equal_to_80_d979609b": {
+              "source": "activity_enrich_ip_321aec38",
+              "target": "gateway_condition_risk_score_is_greater_than_or_equal_to_80_d979609b",
+              "condition": {}
+            },
+            "flow_FROM_risk_score_is_greater_than_or_equal_to_80_d979609b_TO_activity_create_custom_ip_ioc_213f3081": {
+              "source": "gateway_condition_risk_score_is_greater_than_or_equal_to_80_d979609b",
+              "target": "activity_create_custom_ip_ioc_213f3081",
+              "condition": {
+                "expression": "activity_enrich_ip_321aec38.API_Integration.Custom_APIVoid.Enrich_IP.body.data.report.risk_score.result:>=80",
+                "display": [
+                  "Risk Score is greater than or equal to 80"
+                ]
+              }
+            },
+            "flow_FROM_trigger_TO_activity_enrich_ip_321aec38": {
+              "source": "trigger",
+              "target": "activity_enrich_ip_321aec38",
+              "condition": {}
+            }
+          },
+          "gateways": {
+            "gateway_condition_risk_score_is_greater_than_or_equal_to_80_d979609b": {
+              "type": "exclusive",
+              "flows": {
+                "incoming": [
+                  "flow_FROM_activity_enrich_ip_321aec38_TO_gateway_condition_risk_score_is_greater_than_or_equal_to_80_d979609b"
+                ],
+                "outgoing": [
+                  "flow_FROM_risk_score_is_greater_than_or_equal_to_80_d979609b_TO_activity_create_custom_ip_ioc_213f3081"
+                ]
+              }
+            }
+          },
+          "activities": {
+            "activity_create_custom_ip_ioc_213f3081": {
+              "id": "a3d7ed4a02bcfa221d485638860ee853",
+              "name": "Create Custom IP IOC",
+              "flows": {
+                "incoming": "flow_FROM_risk_score_is_greater_than_or_equal_to_80_d979609b_TO_activity_create_custom_ip_ioc_213f3081",
+                "outgoing": "flow_FROM_activity_create_custom_ip_ioc_213f3081_TO_end"
+              },
+              "properties": {
+                "action_type": "detect",
+                "address": "${activity_enrich_ip_321aec38.API_Integration.Custom_APIVoid.Enrich_IP.body.data.report.ip}",
+                "platforms": [
+                  "windows",
+                  "linux"
+                ],
+                "severity": "medium"
+              }
+            },
+            "activity_enrich_ip_321aec38": {
+              "id": "d9688e57542d45d0b79093dad46c9f3f",
+              "name": "Enrich IP",
+              "flows": {
+                "incoming": "flow_FROM_trigger_TO_activity_enrich_ip_321aec38",
+                "outgoing": "flow_FROM_activity_enrich_ip_321aec38_TO_gateway_condition_risk_score_is_greater_than_or_equal_to_80_d979609b"
+              },
+              "properties": {
+                "params": {
+                  "query": {
+                    "ip": "${Trigger.Category.PhishingEmail.EmailProvider.MicrosoftO365.ReceivedFromIPV4.#}"
+                  }
+                }
+              }
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "flow_FROM_activity_create_custom_ip_ioc_213f3081_TO_end"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "Trigger.Category.PhishingEmail.EmailProvider.MicrosoftO365.ReceivedFromIPV4",
+          "array_field_display_name": "Received from ip addresses(v4)",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0
+        },
+        "name": "For each Received from ip addresses(v4); Concurrently",
+        "flows": {
+          "incoming": "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df",
+          "outgoing": "flow_FROM_sub_model_category_phishingemail_emailprovider_microsofto365_receivedfromipv4_bc57f1df_TO_end"
+        }
+      },
+      "sub_model_category_phishingemail_weburlsinemailbody_e0b78203": {
+        "model": {
+          "trigger": {
+            "id": "sub_model_category_phishingemail_weburlsinemailbody_e0b78203",
+            "name": "",
+            "outgoing_flow": "flow_FROM_trigger_TO_activity_submit_url_to_sandbox_66c5d5bc",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "flow_FROM_activity_submit_url_to_sandbox_66c5d5bc_TO_end": {
+              "source": "activity_submit_url_to_sandbox_66c5d5bc",
+              "target": "end",
+              "condition": {}
+            },
+            "flow_FROM_trigger_TO_activity_submit_url_to_sandbox_66c5d5bc": {
+              "source": "trigger",
+              "target": "activity_submit_url_to_sandbox_66c5d5bc",
+              "condition": {}
+            }
+          },
+          "activities": {
+            "activity_submit_url_to_sandbox_66c5d5bc": {
+              "id": "04dabe92e4aba77982c51af9e58edbfd",
+              "name": "Submit URL to sandbox",
+              "flows": {
+                "incoming": "flow_FROM_trigger_TO_activity_submit_url_to_sandbox_66c5d5bc",
+                "outgoing": "flow_FROM_activity_submit_url_to_sandbox_66c5d5bc_TO_end"
+              },
+              "properties": {
+                "action_script": "default",
+                "environment_id": 160,
+                "network_settings": "default",
+                "url": "${Trigger.Category.PhishingEmail.WebURLsInEmailBody.#}"
+              }
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "flow_FROM_activity_submit_url_to_sandbox_66c5d5bc_TO_end"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "Trigger.Category.PhishingEmail.WebURLsInEmailBody",
+          "array_field_display_name": "Web URLs in email",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0
+        },
+        "name": "For each Web URLs in email; Concurrently",
+        "flows": {
+          "incoming": "flow_FROM_gateway_parallel_action_write_to_log_repo_c969b889_TO_sub_model_category_phishingemail_weburlsinemailbody_e0b78203",
+          "outgoing": "flow_FROM_sub_model_category_phishingemail_weburlsinemailbody_e0b78203_TO_end"
+        }
+      },
+      "sub_model_cead5ea3-f689-4350-bee5-91eb20721220": {
+        "model": {
+          "trigger": {
+            "id": "sub_model_cead5ea3-f689-4350-bee5-91eb20721220",
+            "name": "",
+            "outgoing_flow": "flow_dc1203f3-a398-40f2-a28e-17ffdda651b0",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "flow_7e424e82-bba1-4d4e-8d6a-4d5f91934b84": {
+              "source": "activity_62882d03-0f89-47d0-b59c-729a837f276f",
+              "target": "end",
+              "condition": {}
+            },
+            "flow_a22c5be7-d877-47d7-bfcf-c605b15f0eb1": {
+              "source": "activity_4c78b784-f897-4a43-b8f6-374eee15121a",
+              "target": "gateway_decision_84c97820-464c-47f1-ac40-d6850566a468",
+              "condition": {}
+            },
+            "flow_b1a24146-39bc-422c-b1a4-e121002e569e": {
+              "source": "gateway_decision_84c97820-464c-47f1-ac40-d6850566a468",
+              "target": "activity_62882d03-0f89-47d0-b59c-729a837f276f",
+              "condition": {
+                "expression": "activity_4c78b784-f897-4a43-b8f6-374eee15121a.Enrich.User.RiskSeverity:'High'",
+                "display": [
+                  "User risk severity is equal to High"
+                ]
+              }
+            },
+            "flow_dc1203f3-a398-40f2-a28e-17ffdda651b0": {
+              "source": "trigger",
+              "target": "activity_4c78b784-f897-4a43-b8f6-374eee15121a",
+              "condition": {}
+            }
+          },
+          "gateways": {
+            "gateway_decision_84c97820-464c-47f1-ac40-d6850566a468": {
+              "type": "exclusive",
+              "flows": {
+                "incoming": [
+                  "flow_a22c5be7-d877-47d7-bfcf-c605b15f0eb1"
+                ],
+                "outgoing": [
+                  "flow_b1a24146-39bc-422c-b1a4-e121002e569e"
+                ]
+              }
+            }
+          },
+          "activities": {
+            "activity_4c78b784-f897-4a43-b8f6-374eee15121a": {
+              "id": "19c7e2af0a24f468be7797fe180c8329",
+              "name": "Get user identity context",
+              "flows": {
+                "incoming": "flow_dc1203f3-a398-40f2-a28e-17ffdda651b0",
+                "outgoing": "flow_a22c5be7-d877-47d7-bfcf-c605b15f0eb1"
+              },
+              "properties": {
+                "email": "${Trigger.Category.PhishingEmail.ToEmails.#}"
+              }
+            },
+            "activity_62882d03-0f89-47d0-b59c-729a837f276f": {
+              "id": "68819ad0d42d40d2bc41d8bf500aaa5f",
+              "name": "Entra ID - Mark User as Risky - 3",
+              "flows": {
+                "incoming": "flow_b1a24146-39bc-422c-b1a4-e121002e569e",
+                "outgoing": "flow_7e424e82-bba1-4d4e-8d6a-4d5f91934b84"
+              },
+              "properties": {
+                "config_id": "438bebbfff99466a9a06a7681683d387",
+                "json": {
+                  "userIds": [
+                    "${activity_4c78b784-f897-4a43-b8f6-374eee15121a.Enrich.User.UserEntraObjectID}"
+                  ]
+                },
+                "params": {
+                  "header": {
+                    "Content-Type": "application/json"
+                  }
+                }
+              }
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "flow_7e424e82-bba1-4d4e-8d6a-4d5f91934b84"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "Trigger.Category.PhishingEmail.ToEmails",
+          "array_field_display_name": "To email addresses",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0
+        },
+        "name": "For each To email addresses; Concurrently",
+        "flows": {
+          "incoming": "flow_c92930d7-0984-4c39-a277-8e29ba9d2fed",
+          "outgoing": "flow_0323647c-d6d7-4454-8a29-a19d58ee7d75"
+        }
+      }
+    }
+  },
+  "use_cases": [
+    "Email security"
+  ],
+  "vendors": [
+    "Microsoft",
+    "CrowdStrike",
+    "VirusTotal"
+  ],
+  "complexity": 17,
+  "trigger_type": "Event",
+  "id": "f13637f057cb4a1aa1496469d0c37e2e",
+  "version": "0.118.0-pre.PR-386.2",
+  "created_timestamp": "2025-11-05T23:28:57.339898999Z",
+  "last_modified_timestamp": "2025-11-05T23:28:57.307161553Z",
+  "activities": [
+    {
+      "id": "68819ad0d42d40d2bc41d8bf500aaa5f",
+      "name": "Entra ID - Mark User as Risky"
+    },
+    {
+      "id": "19c7e2af0a24f468be7797fe180c8329",
+      "name": "Get user identity context"
+    },
+    {
+      "id": "5aaf2c9c6acb4c94a417669c8d481669",
+      "name": "Add Sender to Org Block List with Proofpoint"
+    },
+    {
+      "id": "ecdace64ddcdc78030544a75fa766b0e",
+      "name": "Create Custom Domain IOC"
+    },
+    {
+      "id": "18eb9bee7aa64071b2dd5f9829db681f",
+      "name": "APIVoid - Enrich Domain"
+    },
+    {
+      "id": "69d872bffa2d42d7af42c21263922f16",
+      "name": "Find phishing emails processed by workflows"
+    },
+    {
+      "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+      "name": "Write to log repo"
+    },
+    {
+      "id": "79f1d0f02d119366cad377067d71fb5f",
+      "name": "Send Microsoft Teams message"
+    },
+    {
+      "id": "a3d7ed4a02bcfa221d485638860ee853",
+      "name": "Create Custom IP IOC"
+    },
+    {
+      "id": "d9688e57542d45d0b79093dad46c9f3f",
+      "name": "APIVoid - Enrich IP"
+    },
+    {
+      "id": "04dabe92e4aba77982c51af9e58edbfd",
+      "name": "Submit URL to sandbox"
+    },
+    {
+      "id": "557d9de82413677873ceb2e0d5480507",
+      "name": "Create Custom Hash IOC"
+    },
+    {
+      "id": "39ebbf77fd1d680c5ecbc790659dd4b0",
+      "name": "Get processes associated with a sha256 hash"
+    },
+    {
+      "id": "668bf0d0b832510e21d7c00386d277ea",
+      "name": "VirusTotal File Hash Lookup"
+    },
+    {
+      "id": "1bf5b9585917e51f84f5c9f2ea1aea54",
+      "name": "Remove file"
+    },
+    {
+      "id": "9ac54d8989c68dbf601acffe8444f7dc",
+      "name": "Kill process"
+    },
+    {
+      "id": "bec9fbeb4999d207937854fd56088107",
+      "name": "Contain device"
+    }
+  ],
+  "trigger": {
+    "id": "b332aa1de01cab51373501ff797d7d14",
+    "name": "Phishing email > Microsoft O365"
+  },
+  "unavailable_reasons": [
+    "Requires additional CID permissions\nAdditional CID permissions needed to add this action",
+    "Requires additional permissions\nAdditional user permissions needed to add this action"
+  ]
+}

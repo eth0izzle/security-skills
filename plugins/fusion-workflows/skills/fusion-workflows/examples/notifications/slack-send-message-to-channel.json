@@ -1,0 +1,96 @@
+{
+  "name": "Slack \u2013 Send Message to Channel",
+  "description": "Instantly send a message to a specific Slack channel to notify teams about a new alert, incident, or task update. Useful for real-time collaboration or escalation during active investigations.",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "flow_fc8e862c-fa5b-4610-900e-3e09122de88c",
+      "parameters": {
+        "$schema": "https://json-schema.org/draft-07/schema",
+        "properties": {
+          "json": {
+            "properties": {
+              "channel": {
+                "type": "string",
+                "title": "Channel",
+                "description": "Slack channel ID or name (for example, #security-alerts)."
+              },
+              "text": {
+                "type": "string",
+                "title": "Message Text",
+                "description": "The message text to send to the channel."
+              }
+            },
+            "required": [
+              "channel",
+              "text"
+            ],
+            "type": "object",
+            "title": "Slack \u2013 Send Message Request",
+            "description": "Post a basic message to a Slack channel."
+          }
+        },
+        "required": [
+          "json"
+        ],
+        "type": "object"
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "flow_d70eebb5-ed8c-4a62-9a72-ba245339478e": {
+        "source": "SlackV2ChatPostMessage",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_fc8e862c-fa5b-4610-900e-3e09122de88c": {
+        "source": "trigger",
+        "target": "SlackV2ChatPostMessage",
+        "condition": {}
+      }
+    },
+    "activities": {
+      "SlackV2ChatPostMessage": {
+        "id": "184239ceb8a046cfb159228abd7cc67e",
+        "name": "Slack v2 - Chat PostMessage",
+        "flows": {
+          "incoming": "flow_fc8e862c-fa5b-4610-900e-3e09122de88c",
+          "outgoing": "flow_d70eebb5-ed8c-4a62-9a72-ba245339478e"
+        },
+        "properties": {
+          "json": {
+            "channel": "${data['json.channel']}",
+            "markdown_text": "",
+            "text": "${data['json.text']}"
+          }
+        },
+        "version_constraint": "~0"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_d70eebb5-ed8c-4a62-9a72-ba245339478e"
+      ]
+    }
+  },
+  "use_cases": [
+    "Utilities"
+  ],
+  "vendors": null,
+  "complexity": 1,
+  "trigger_type": "On demand",
+  "id": "24887ee577af44e992d092956c314225",
+  "version": "0.120.0",
+  "created_timestamp": "2025-11-17T22:42:37.871125826Z",
+  "last_modified_timestamp": "2025-12-02T19:42:05.95055599Z",
+  "activities": [
+    {
+      "id": "184239ceb8a046cfb159228abd7cc67e",
+      "name": "Slack v2 - Chat PostMessage"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

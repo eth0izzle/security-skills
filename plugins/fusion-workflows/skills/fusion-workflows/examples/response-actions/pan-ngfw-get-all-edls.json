@@ -1,0 +1,113 @@
+{
+  "name": "PAN NGFW - Get All EDLs",
+  "description": "Retrieves all External Dynamic List (EDL) objects configured on a PAN NGFW firewall for a given XPath scope (per-vsys or shared). Use this to audit available EDLs or identify the correct EDL name before performing blocklist or allowlist operations.",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "FROM_trigger_TO_GetAllEDLs",
+      "parameters": {
+        "properties": {
+          "FirewallIP": {
+            "type": "string",
+            "description": "IP address or hostname of the PAN NGFW management interface"
+          },
+          "XPath": {
+            "enum": [
+              "/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']/external-list",
+              "/config/shared/external-list"
+            ],
+            "type": "string",
+            "description": "XPath scope to query: use vsys path for per-vsys EDLs, or shared path for EDLs shared across all vsys"
+          }
+        },
+        "required": [
+          "XPath",
+          "FirewallIP"
+        ],
+        "type": "object"
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "FROM_trigger_TO_GetAllEDLs": {
+        "source": "trigger",
+        "target": "GetAllEDLs",
+        "condition": {}
+      },
+      "flow_611adb8b-8012-4eb8-aee9-2cb7578915fa": {
+        "source": "GetAllEDLs",
+        "target": "end",
+        "condition": {}
+      }
+    },
+    "activities": {
+      "GetAllEDLs": {
+        "id": "50b8a7cc77ea4ebb9d0bbe96d8def095",
+        "class": "Inline.HTTPRequest",
+        "name": "Get All EDLs",
+        "flows": {
+          "incoming": "FROM_trigger_TO_GetAllEDLs",
+          "outgoing": "flow_611adb8b-8012-4eb8-aee9-2cb7578915fa"
+        },
+        "properties": {
+          "authentication_option": "UseExisting",
+          "definition_id": "31fd9a5893df4127b93f9d27e80a1ea9",
+          "deployment_model": "on_prem",
+          "host_group_id": "4775ad67cafd4edb90aa9d250678c871",
+          "http_transaction": {
+            "request_content_type": "NONE",
+            "request_headers": {},
+            "request_http_method": "GET",
+            "request_query": {
+              "1e79e667-45ce-4bb6-90c0-3d8082954b35": {
+                "name": "type",
+                "value": "config"
+              },
+              "893e0c8b-a8bb-42c2-bd60-2413e99ef28d": {
+                "name": "action",
+                "value": "show"
+              },
+              "a186c680-5ddb-4643-84b0-c844e2cc0899": {
+                "name": "xpath",
+                "value": "${data['XPath']}"
+              }
+            },
+            "request_url": "https://${data['FirewallIP']}/api",
+            "response_body": "",
+            "response_status_code": 200
+          },
+          "insecure_skip_verify": true
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_611adb8b-8012-4eb8-aee9-2cb7578915fa"
+      ]
+    }
+  },
+  "use_cases": [
+    "Network security"
+  ],
+  "vendors": [
+    "CrowdStrike",
+    "Palo Alto Networks"
+  ],
+  "complexity": 1,
+  "trigger_type": "On demand",
+  "id": "1f71954d46f54a9bb0ae1d3e08653f14",
+  "version": "0.208.0",
+  "created_timestamp": "2026-04-17T10:44:29.459326174Z",
+  "last_modified_timestamp": "2026-04-17T10:44:32.719945087Z",
+  "activities": [
+    {
+      "id": "50b8a7cc77ea4ebb9d0bbe96d8def095",
+      "name": "On-Premises HTTP Request"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

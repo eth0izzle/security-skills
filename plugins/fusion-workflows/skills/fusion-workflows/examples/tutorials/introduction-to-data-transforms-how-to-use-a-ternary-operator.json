@@ -1,0 +1,96 @@
+{
+  "name": "Introduction to data transforms: How to use a ternary operator",
+  "description": "Learn how to use a ternary operator",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "flow_2724c516-e472-47c9-b0c0-1bf090e2db1c",
+      "parameters": {
+        "properties": {
+          "age": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "position": {
+        "x": 0,
+        "y": 0,
+        "anchor": ""
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "flow_2724c516-e472-47c9-b0c0-1bf090e2db1c": {
+        "source": "trigger",
+        "target": "IfAgeIsGreaterThanOrEqualTo18PrintAdultElseMinor",
+        "condition": {}
+      },
+      "flow_9e1da882-18f5-4377-8654-111ee374b72a": {
+        "source": "IfAgeIsGreaterThanOrEqualTo18PrintAdultElseMinor",
+        "target": "end",
+        "condition": {}
+      }
+    },
+    "activities": {
+      "IfAgeIsGreaterThanOrEqualTo18PrintAdultElseMinor": {
+        "id": "aadbf530e35fc452a032f5f8acaaac2a",
+        "name": "If age is greater than or equal to 18 print adult else minor",
+        "flows": {
+          "incoming": "flow_2724c516-e472-47c9-b0c0-1bf090e2db1c",
+          "outgoing": "flow_9e1da882-18f5-4377-8654-111ee374b72a"
+        },
+        "mock_output": {
+          "node_mock_id": "",
+          "enabled": false
+        },
+        "position": {
+          "x": 0,
+          "y": 200,
+          "anchor": ""
+        },
+        "properties": {
+          "text_data": "${data['age'] >= 18 ? 'adult' : 'minor'}"
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_9e1da882-18f5-4377-8654-111ee374b72a"
+      ]
+    }
+  },
+  "use_cases": [
+    "Utilities"
+  ],
+  "vendors": [
+    "CrowdStrike"
+  ],
+  "complexity": 1,
+  "trigger_type": "On demand",
+  "disconnected_nodes": [
+    {
+      "comment": "Ternary operator is used here to conditionally print data",
+      "id": "notes_93a22202-b8a9-456c-8ec5-82aeaec40126",
+      "position": {
+        "x": 326,
+        "y": 184
+      }
+    }
+  ],
+  "id": "cf15d6b4e2cc4fb49a247ba5b56e352d",
+  "version": "0.193.0",
+  "created_timestamp": "2026-03-16T23:19:26.547659999Z",
+  "last_modified_timestamp": "2026-03-16T23:19:28.553132199Z",
+  "activities": [
+    {
+      "id": "aadbf530e35fc452a032f5f8acaaac2a",
+      "name": "Print data"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

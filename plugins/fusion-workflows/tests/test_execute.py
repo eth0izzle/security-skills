@@ -17,6 +17,32 @@ class TestExecuteWorkflow:
         assert "params" in params
         assert "depth" in params
 
+    def test_execution_id_parsed_from_bare_string(self, monkeypatch):
+        """The execute endpoint returns resources as bare ID strings, not dicts."""
+        mock_client = MagicMock()
+        mock_client.execute.return_value = {
+            "status_code": 200,
+            "body": {"resources": ["6c0b22c26ec8358b5df2098ddad0e304"], "errors": []},
+            "headers": {},
+        }
+        monkeypatch.setattr(execute, "get_client", lambda: mock_client)
+        ok, exec_id, _ = execute.execute_workflow("def_id", {})
+        assert ok is True
+        assert exec_id == "6c0b22c26ec8358b5df2098ddad0e304"
+
+    def test_execution_id_parsed_from_dict(self, monkeypatch):
+        """Still handle the object shape defensively."""
+        mock_client = MagicMock()
+        mock_client.execute.return_value = {
+            "status_code": 200,
+            "body": {"resources": [{"id": "abc123"}], "errors": []},
+            "headers": {},
+        }
+        monkeypatch.setattr(execute, "get_client", lambda: mock_client)
+        ok, exec_id, _ = execute.execute_workflow("def_id", {})
+        assert ok is True
+        assert exec_id == "abc123"
+
 
 class TestPollResults:
     """Test result polling logic."""
@@ -29,7 +55,7 @@ class TestPollResults:
         def mock_execution_results(**kwargs):
             nonlocal call_count
             call_count += 1
-            return {"status_code": 200, "body": {"resources": [{"status": "running"}]}, "headers": {}}
+            return {"status_code": 200, "body": {"resources": [{"status": "In progress"}]}, "headers": {}}
 
         mock_client.execution_results = mock_execution_results
         monkeypatch.setattr(execute, "get_client", lambda: mock_client)
@@ -37,28 +63,28 @@ class TestPollResults:
         assert result is None
         assert call_count > 0
 
-    def test_poll_completed_returns_result(self, monkeypatch):
-        """Verify completed status is returned."""
+    def test_poll_succeeded_returns_result(self, monkeypatch):
+        """Verify a terminal Succeeded status is returned (real API casing)."""
         mock_client = MagicMock()
         mock_client.execution_results.return_value = {
             "status_code": 200,
-            "body": {"resources": [{"status": "completed", "output": {"key": "value"}}]},
+            "body": {"resources": [{"status": "Succeeded", "output": {"key": "value"}}]},
             "headers": {},
         }
         monkeypatch.setattr(execute, "get_client", lambda: mock_client)
         result = execute.poll_results("fake_id", timeout=5, interval=0.1)
         assert result is not None
-        assert result["status"] == "completed"
+        assert result["status"] == "Succeeded"
         assert result["output"] == {"key": "value"}
 
     def test_poll_failed_returns_result(self, monkeypatch):
-        """Verify failed status is also returned (not retried forever)."""
+        """Verify capitalized Failed status is terminal (not retried forever)."""
         mock_client = MagicMock()
         mock_client.execution_results.return_value = {
             "status_code": 200,
-            "body": {"resources": [{"status": "failed"}]},
+            "body": {"resources": [{"status": "Failed"}]},
             "headers": {},
         }
         monkeypatch.setattr(execute, "get_client", lambda: mock_client)
         result = execute.poll_results("fake_id", timeout=5, interval=0.1)
-        assert result["status"] == "failed"
+        assert result["status"] == "Failed"
