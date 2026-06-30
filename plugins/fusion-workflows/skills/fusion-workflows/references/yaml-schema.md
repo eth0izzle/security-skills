@@ -169,7 +169,7 @@ actions:
 
 ## conditions
 
-Two expression syntaxes are available. Use the appropriate YAML key:
+Two expression syntaxes are available. Prefer `cel_expression` (CEL) for new workflows; `expression` (FQL-style) is legacy.
 
 ### CEL expressions (`cel_expression`)
 
@@ -185,7 +185,7 @@ conditions:
             - IOC type is IP
 ```
 
-### FQL-style expressions (`expression`)
+### FQL-style expressions (`expression`, legacy)
 
 For membership/inclusion checks (e.g., group membership):
 
@@ -201,8 +201,26 @@ conditions:
             - SkipAction
 ```
 
-**`else` branch**: Only supported with `expression`, not `cel_expression`.
-With `cel_expression`, mutually exclusive conditions must be separate nodes.
+### `else` and `else_if` branches
+
+Both `cel_expression` and `expression` support `else`. CEL also supports `else_if`, which chains to another condition node to build if / else-if / else:
+
+```yaml
+conditions:
+    is_bar:                          # IF
+        cel_expression: data['foo'] == "bar"
+        next:
+            - PrintBar
+        else_if: is_tea
+    is_tea:                          # ELSE IF
+        cel_expression: data['foo'] == "tea"
+        next:
+            - PrintTea
+        else:                        # ELSE (default fallthrough)
+            - PrintDefault
+```
+
+In the workflow JSON this is an exclusive gateway whose `else` branch is the gateway's `default` flow. The YAML is a conversion of that JSON; the backend processes the JSON.
 
 ---
 

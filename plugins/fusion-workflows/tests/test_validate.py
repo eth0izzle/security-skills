@@ -109,6 +109,40 @@ class TestStructuralCheck:
         issues = validate.structural_check(str(f))
         assert issues == []
 
+    def test_cel_expression_with_else_is_allowed(self, tmp_path):
+        """cel_expression supports else/else_if (verified against the engine's
+        translator test data). The validator must not flag this combination."""
+        content = """\
+# Header
+name: CEL else test
+trigger:
+  type: On demand
+  next:
+    - is_bar
+actions:
+  PrintBar:
+    id: aabbccdd11223344aabbccdd11223344
+    name: Print data
+    properties:
+      text_data: bar
+  PrintDefault:
+    id: aabbccdd11223344aabbccdd11223344
+    name: Print data
+    properties:
+      text_data: nope
+conditions:
+  is_bar:
+    cel_expression: data['foo'] == "bar"
+    next:
+      - PrintBar
+    else:
+      - PrintDefault
+"""
+        f = tmp_path / "cel_else.yaml"
+        f.write_text(content)
+        issues = validate.structural_check(str(f))
+        assert not any("cel_expression" in i.lower() and "else" in i.lower() for i in issues)
+
     def test_invalid_action_id_not_hex(self, tmp_path):
         f = tmp_path / "bad_id.yaml"
         f.write_text(VALID_WORKFLOW.replace(
