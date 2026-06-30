@@ -1,0 +1,405 @@
+{
+  "name": "Introduction to lookup file actions",
+  "description": "Learn how to use lookup file actions from Fusion SOAR. This workflow uses the create, append, overwrite, and update operations to modify a sample employee table lookup file formatted in CSV.",
+  "feature_flag": "cloud-workflow-activity-lookup-file",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "flow_009093fa-27ec-4df9-842c-e8248f144cd0",
+      "parameters": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Unique file name ending in .csv",
+            "description": "Unique file name ending in .csv"
+          },
+          "operation": {
+            "enum": [
+              "overwrite",
+              "append",
+              "update"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "operation"
+        ],
+        "type": "object"
+      },
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "flow_009093fa-27ec-4df9-842c-e8248f144cd0": {
+        "source": "trigger",
+        "target": "gateway_decision_a99962c3-9f64-4633-b4de-27f43ea47538",
+        "condition": {}
+      },
+      "flow_17c12f3b-9d28-418f-a193-6a2c22b075e9": {
+        "source": "UpdateLookupFileCSVOnly",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_228931d6-d11d-4da3-b065-8e40bf9742ce": {
+        "source": "gateway_decision_cd91eb31-a0a8-47c6-93f4-60c35cb813b5",
+        "target": "AppendLookupFileCSVOnly",
+        "condition": {
+          "expression": "operation:'append'",
+          "display": [
+            "Operation is equal to append"
+          ]
+        }
+      },
+      "flow_2710cc69-8697-42a1-ae5d-822ec9b2fbbd": {
+        "source": "GetLookupFileMetadata",
+        "target": "gateway_decision_c1d2f783-9b3f-4934-9666-1afa28670183",
+        "condition": {}
+      },
+      "flow_27890afe-7e33-4249-a3ea-c5c4f3fd037c": {
+        "source": "gateway_decision_c1d2f783-9b3f-4934-9666-1afa28670183",
+        "target": "AppendToExistingLookupFile",
+        "condition": {
+          "expression": "GetLookupFileMetadata.lookup_file_exists:true+operation:'append'",
+          "display": [
+            "Lookup file exists is equal to True",
+            "Operation is equal to append"
+          ]
+        }
+      },
+      "flow_2b7a5b48-e84b-4687-b03b-182b1a19c3d1": {
+        "source": "UpdateExistingLookupFile",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_37d9693a-3ac6-4f6b-8999-090fd528a72f": {
+        "source": "gateway_decision_cd91eb31-a0a8-47c6-93f4-60c35cb813b5",
+        "target": "UpdateLookupFileCSVOnly",
+        "condition": {
+          "expression": "operation:'update'",
+          "display": [
+            "Operation is equal to update"
+          ]
+        }
+      },
+      "flow_632cdcc4-281b-4c60-8be5-efe70085d2c0": {
+        "source": "OverwriteExistingLookupFile",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_636e8e2b-a44b-4f64-8958-6fb725eb710f": {
+        "source": "gateway_decision_a99962c3-9f64-4633-b4de-27f43ea47538",
+        "target": "GetLookupFileMetadata",
+        "condition": {
+          "cel_expression": "data['filename'].endsWith('.csv') == true",
+          "display": [
+            "data[&#39;filename&#39;].endsWith(&#39;.csv&#39;) == true"
+          ]
+        }
+      },
+      "flow_6e5fffb4-0081-4f21-b8a5-69b4599f993e": {
+        "source": "gateway_decision_c1d2f783-9b3f-4934-9666-1afa28670183",
+        "target": "OverwriteExistingLookupFile",
+        "condition": {
+          "expression": "GetLookupFileMetadata.lookup_file_exists:true+operation:'overwrite'",
+          "display": [
+            "Lookup file exists is equal to True",
+            "Operation is equal to overwrite"
+          ]
+        }
+      },
+      "flow_7f0e94e1-12e4-4077-b645-dab72d081d6e": {
+        "source": "CreateANewLookupFileIfLookupFileDoesntExist",
+        "target": "gateway_decision_cd91eb31-a0a8-47c6-93f4-60c35cb813b5",
+        "condition": {}
+      },
+      "flow_8569c6a0-4883-4db7-8855-f7271f1e4ef9": {
+        "source": "gateway_decision_c1d2f783-9b3f-4934-9666-1afa28670183",
+        "target": "UpdateExistingLookupFile",
+        "condition": {
+          "expression": "GetLookupFileMetadata.lookup_file_exists:true+operation:'update'",
+          "display": [
+            "Lookup file exists is equal to True",
+            "Operation is equal to update"
+          ]
+        }
+      },
+      "flow_87556871-67dd-4856-840f-925bb5ec77de": {
+        "source": "PrintData2",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_8fc64f3e-6766-4c41-aa3e-bf17287e781a": {
+        "source": "gateway_decision_cd91eb31-a0a8-47c6-93f4-60c35cb813b5",
+        "target": "OverwriteLookupFile",
+        "condition": {
+          "expression": "operation:'overwrite'",
+          "display": [
+            "Operation is equal to overwrite"
+          ]
+        }
+      },
+      "flow_a9c2fd02-0a41-49f1-9319-fe8d70803b94": {
+        "source": "gateway_decision_a99962c3-9f64-4633-b4de-27f43ea47538",
+        "target": "PrintData2",
+        "condition": {}
+      },
+      "flow_b8172d35-1021-4d16-a727-c24f0e335200": {
+        "source": "gateway_decision_c1d2f783-9b3f-4934-9666-1afa28670183",
+        "target": "CreateANewLookupFileIfLookupFileDoesntExist",
+        "condition": {
+          "expression": "GetLookupFileMetadata.lookup_file_exists:false",
+          "display": [
+            "Lookup file exists is equal to False"
+          ]
+        }
+      },
+      "flow_bdbb5b7b-bbc3-4d51-9364-9c7fc26c08e3": {
+        "source": "AppendLookupFileCSVOnly",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_d27041a5-61eb-4eee-a3d5-553ea3f8a874": {
+        "source": "AppendToExistingLookupFile",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_e30ff484-e801-410c-873e-4e05ce8a0619": {
+        "source": "OverwriteLookupFile",
+        "target": "end",
+        "condition": {}
+      }
+    },
+    "gateways": {
+      "gateway_decision_a99962c3-9f64-4633-b4de-27f43ea47538": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_009093fa-27ec-4df9-842c-e8248f144cd0"
+          ],
+          "outgoing": [
+            "flow_636e8e2b-a44b-4f64-8958-6fb725eb710f",
+            "flow_a9c2fd02-0a41-49f1-9319-fe8d70803b94"
+          ],
+          "default": "flow_a9c2fd02-0a41-49f1-9319-fe8d70803b94"
+        }
+      },
+      "gateway_decision_c1d2f783-9b3f-4934-9666-1afa28670183": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_2710cc69-8697-42a1-ae5d-822ec9b2fbbd"
+          ],
+          "outgoing": [
+            "flow_b8172d35-1021-4d16-a727-c24f0e335200",
+            "flow_8569c6a0-4883-4db7-8855-f7271f1e4ef9",
+            "flow_6e5fffb4-0081-4f21-b8a5-69b4599f993e",
+            "flow_27890afe-7e33-4249-a3ea-c5c4f3fd037c"
+          ]
+        }
+      },
+      "gateway_decision_cd91eb31-a0a8-47c6-93f4-60c35cb813b5": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_7f0e94e1-12e4-4077-b645-dab72d081d6e"
+          ],
+          "outgoing": [
+            "flow_37d9693a-3ac6-4f6b-8999-090fd528a72f",
+            "flow_228931d6-d11d-4da3-b065-8e40bf9742ce",
+            "flow_8fc64f3e-6766-4c41-aa3e-bf17287e781a"
+          ]
+        }
+      }
+    },
+    "activities": {
+      "AppendLookupFileCSVOnly": {
+        "id": "fe8acd4b4b2a30759745b2fcc6335306",
+        "name": "Append lookup file (CSV only)",
+        "flows": {
+          "incoming": "flow_228931d6-d11d-4da3-b065-8e40bf9742ce",
+          "outgoing": "flow_bdbb5b7b-bbc3-4d51-9364-9c7fc26c08e3"
+        },
+        "properties": {
+          "lookup_file_content_text": "Employee_ID,First_Name,Last_Name,Email,Department,Job_Title,Manager,Phone,Office_Location,Start_Date\nEMP010,Karen,White,karen.white@example.com,Executive,Chief Financial Officer,,555-0204,Denver CO,2018-11-05",
+          "lookup_file_content_type": "text",
+          "lookup_file_name": "${data['filename']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      },
+      "AppendToExistingLookupFile": {
+        "id": "fe8acd4b4b2a30759745b2fcc6335306",
+        "name": "append to existing lookup file",
+        "flows": {
+          "incoming": "flow_27890afe-7e33-4249-a3ea-c5c4f3fd037c",
+          "outgoing": "flow_d27041a5-61eb-4eee-a3d5-553ea3f8a874"
+        },
+        "properties": {
+          "lookup_file_content_text": "Employee_ID,First_Name,Last_Name,Email,Department,Job_Title,Manager,Phone,Office_Location,Start_Date\nEMP010,Karen,White,karen.white@example.com,Executive,Chief Financial Officer,,555-0204,Denver CO,2018-11-05",
+          "lookup_file_content_type": "text",
+          "lookup_file_name": "${data['GetLookupFileMetadata.lookup_file_name']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      },
+      "CreateANewLookupFileIfLookupFileDoesntExist": {
+        "id": "51c4db34ab30465f796d7550f3e3e97b",
+        "name": "Create a new lookup file if lookup file doesnt exist",
+        "flows": {
+          "incoming": "flow_b8172d35-1021-4d16-a727-c24f0e335200",
+          "outgoing": "flow_7f0e94e1-12e4-4077-b645-dab72d081d6e"
+        },
+        "properties": {
+          "lookup_file_content_text": "Employee_ID,First_Name,Last_Name,Email,Department,Job_Title,Manager,Phone,Office_Location,Start_Date\nEMP001,John,Smith,john.smith@example.com,Engineering,Senior Software Engineer,Sarah Johnson,555-0101,Austin TX,2022-03-15\nEMP002,Sarah,Johnson,sarah.johnson@example.com,Engineering,Engineering Manager,Michael Chen,555-0102,Austin TX,2020-06-01\nEMP003,Emily,Rodriguez,emily.rodriguez@example.com,Sales,Account Executive,David Park,555-0103,New York NY,2023-01-10",
+          "lookup_file_content_type": "text",
+          "lookup_file_name": "${data['filename']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      },
+      "GetLookupFileMetadata": {
+        "id": "ace50afa2ea8438162f098b621f790fb",
+        "name": "Get lookup file metadata",
+        "flows": {
+          "incoming": "flow_636e8e2b-a44b-4f64-8958-6fb725eb710f",
+          "outgoing": "flow_2710cc69-8697-42a1-ae5d-822ec9b2fbbd"
+        },
+        "properties": {
+          "lookup_file_name": "${data['filename']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      },
+      "OverwriteExistingLookupFile": {
+        "id": "3fa82584a1c9103b21fb80477102a05b",
+        "name": "overwrite existing lookup file",
+        "flows": {
+          "incoming": "flow_6e5fffb4-0081-4f21-b8a5-69b4599f993e",
+          "outgoing": "flow_632cdcc4-281b-4c60-8be5-efe70085d2c0"
+        },
+        "properties": {
+          "lookup_file_content_text": "Employee_ID,First_Name,Last_Name,Email,Department,Job_Title,Manager,Phone,Office_Location,Start_Date\nEMP001,Robert,Williams,robert.williams@example.com,Finance,Financial Analyst,Jennifer Martinez,555-0201,Chicago IL,2023-02-20\nEMP002,Jennifer,Martinez,jennifer.martinez@example.com,Finance,Finance Manager,Thomas Brown,555-0202,Chicago IL,2021-08-15\nEMP003,Thomas,Brown,thomas.brown@example.com,Operations,Operations Director,Karen White,555-0203,Denver CO,2020-01-10\nEMP004,Mohamed,Ali,mohamed.ali@example.com,Executive,Chief Boxing Officer,,555-0204,Boulder CO,2018-11-05\nEMP005,David,Lee,david.lee@example.com,HR,HR Specialist,Patricia Garcia,555-0205,Seattle WA,2023-09-01\nEMP006,Patricia,Garcia,patricia.garcia@example.com,HR,HR Manager,Karen White,555-0206,Seattle WA,2022-04-12\nEMP007,James,Anderson,james.anderson@example.com,IT,IT Support Technician,Mark Johnson,555-0207,Boston MA,2024-01-15\nEMP008,Mark,Johnson,mark.johnson@example.com,IT,IT Manager,Karen White,555-0208,Boston MA,2021-03-22",
+          "lookup_file_content_type": "text",
+          "lookup_file_name": "${data['GetLookupFileMetadata.lookup_file_name']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      },
+      "OverwriteLookupFile": {
+        "id": "3fa82584a1c9103b21fb80477102a05b",
+        "name": "Overwrite lookup file",
+        "flows": {
+          "incoming": "flow_8fc64f3e-6766-4c41-aa3e-bf17287e781a",
+          "outgoing": "flow_e30ff484-e801-410c-873e-4e05ce8a0619"
+        },
+        "properties": {
+          "lookup_file_content_text": "Employee_ID,First_Name,Last_Name,Email,Department,Job_Title,Manager,Phone,Office_Location,Start_Date\nEMP001,Robert,Williams,robert.williams@example.com,Finance,Financial Analyst,Jennifer Martinez,555-0201,Chicago IL,2023-02-20\nEMP002,Jennifer,Martinez,jennifer.martinez@example.com,Finance,Finance Manager,Thomas Brown,555-0202,Chicago IL,2021-08-15\nEMP003,Thomas,Brown,thomas.brown@example.com,Operations,Operations Director,Karen White,555-0203,Denver CO,2020-01-10\nEMP004,Mohamed,Ali,mohamed.ali@example.com,Executive,Chief Boxing Officer,,555-0204,Boulder CO,2018-11-05\nEMP005,David,Lee,david.lee@example.com,HR,HR Specialist,Patricia Garcia,555-0205,Seattle WA,2023-09-01\nEMP006,Patricia,Garcia,patricia.garcia@example.com,HR,HR Manager,Karen White,555-0206,Seattle WA,2022-04-12\nEMP007,James,Anderson,james.anderson@example.com,IT,IT Support Technician,Mark Johnson,555-0207,Boston MA,2024-01-15\nEMP008,Mark,Johnson,mark.johnson@example.com,IT,IT Manager,Karen White,555-0208,Boston MA,2021-03-22",
+          "lookup_file_content_type": "text",
+          "lookup_file_name": "${data['CreateANewLookupFileIfLookupFileDoesntExist.lookup_file_name']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      },
+      "PrintData2": {
+        "id": "aadbf530e35fc452a032f5f8acaaac2a",
+        "name": "Print data - 2",
+        "flows": {
+          "incoming": "flow_a9c2fd02-0a41-49f1-9319-fe8d70803b94",
+          "outgoing": "flow_87556871-67dd-4856-840f-925bb5ec77de"
+        },
+        "properties": {
+          "text_data": "The lookup file name must end in .csv"
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateExistingLookupFile": {
+        "id": "bd97b8cdd275c4aa09564189f725ae24",
+        "name": "update existing lookup file",
+        "flows": {
+          "incoming": "flow_8569c6a0-4883-4db7-8855-f7271f1e4ef9",
+          "outgoing": "flow_2b7a5b48-e84b-4687-b03b-182b1a19c3d1"
+        },
+        "properties": {
+          "lookup_file_content_text": "Employee_ID,First_Name,Last_Name,Email,Department,Job_Title,Manager,Phone,Office_Location,Start_Date\nEMP002,Sarah,Johnson,sarah.johnson@example.com,Engineering,Senior Engineering Manager,Michael Chen,555-0102,Austin TX,2020-06-01",
+          "lookup_file_content_type": "text",
+          "lookup_file_csv_key_columns": "Employee_ID",
+          "lookup_file_matching_ignore_case": true,
+          "lookup_file_name": "${data['GetLookupFileMetadata.lookup_file_name']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      },
+      "UpdateLookupFileCSVOnly": {
+        "id": "bd97b8cdd275c4aa09564189f725ae24",
+        "name": "Update lookup file (CSV only)",
+        "flows": {
+          "incoming": "flow_37d9693a-3ac6-4f6b-8999-090fd528a72f",
+          "outgoing": "flow_17c12f3b-9d28-418f-a193-6a2c22b075e9"
+        },
+        "properties": {
+          "lookup_file_content_text": "Employee_ID,First_Name,Last_Name,Email,Department,Job_Title,Manager,Phone,Office_Location,Start_Date\nEMP002,Sarah,Johnson,sarah.johnson@example.com,Engineering,Senior Engineering Manager,Michael Chen,555-0102,Austin TX,2020-06-01",
+          "lookup_file_content_type": "text",
+          "lookup_file_csv_key_columns": "Employee_ID",
+          "lookup_file_matching_ignore_case": true,
+          "lookup_file_name": "${data['filename']}",
+          "lookup_file_repo": "third-party"
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_bdbb5b7b-bbc3-4d51-9364-9c7fc26c08e3",
+        "flow_87556871-67dd-4856-840f-925bb5ec77de",
+        "flow_e30ff484-e801-410c-873e-4e05ce8a0619",
+        "flow_17c12f3b-9d28-418f-a193-6a2c22b075e9",
+        "flow_2b7a5b48-e84b-4687-b03b-182b1a19c3d1",
+        "flow_632cdcc4-281b-4c60-8be5-efe70085d2c0",
+        "flow_d27041a5-61eb-4eee-a3d5-553ea3f8a874"
+      ]
+    }
+  },
+  "use_cases": [
+    "Utilities"
+  ],
+  "vendors": [
+    "CrowdStrike"
+  ],
+  "complexity": 6,
+  "trigger_type": "On demand",
+  "id": "27c7a89ecf0f43ceaa9cc5fed53495af",
+  "version": "0.126.0",
+  "created_timestamp": "2026-01-04T23:03:07.747419079Z",
+  "last_modified_timestamp": "2026-01-04T23:03:07.71534014Z",
+  "activities": [
+    {
+      "id": "51c4db34ab30465f796d7550f3e3e97b",
+      "name": "Create lookup file"
+    },
+    {
+      "id": "ace50afa2ea8438162f098b621f790fb",
+      "name": "Get lookup file metadata"
+    },
+    {
+      "id": "3fa82584a1c9103b21fb80477102a05b",
+      "name": "Overwrite lookup file"
+    },
+    {
+      "id": "aadbf530e35fc452a032f5f8acaaac2a",
+      "name": "Print data"
+    },
+    {
+      "id": "bd97b8cdd275c4aa09564189f725ae24",
+      "name": "Update lookup file (CSV only)"
+    },
+    {
+      "id": "fe8acd4b4b2a30759745b2fcc6335306",
+      "name": "Append lookup file (CSV only)"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

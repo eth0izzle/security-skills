@@ -1,0 +1,447 @@
+{
+  "name": "Close Duplicate Next-Gen SIEM Detections Automatically",
+  "description": "Automatically identifies and closes duplicate Next-Gen SIEM detections by querying for previous alerts with the same event data, then tags, comments, and closes the duplicate detection while notifying the original detection of the duplicate closure. Note for Falcon Complete Customers: This playbook contains Fusions SOAR actions that have potential to limit the visibility of detections investigated by the Falcon Complete Team. Consult with your Falcon Complete Security Advisor before enabling this playbook.",
+  "model": {
+    "trigger": {
+      "id": "b6bd895edf634f7c7a34a23b44f0610d",
+      "name": "Detection > NG-SIEM Detection",
+      "outgoing_flow": "flow_e0f2bbd1-f60e-4d84-bf1d-4e90a6ac1faf",
+      "trigger_type": "Signal",
+      "version_constraint": "~1"
+    },
+    "flows": {
+      "flow_07e7e6b4-c06b-4064-96d4-f0afc1472934": {
+        "source": "SetDetectionStatus",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_1e224503-0839-423c-a672-28273182da08": {
+        "source": "DuplicateNGSIEMDetectionsQuery",
+        "target": "gateway_decision_b17055a2-3132-4476-aff8-12e024375542",
+        "condition": {}
+      },
+      "flow_39b597f3-63d3-4423-83f7-0ae42f7a489f": {
+        "source": "gateway_decision_b17055a2-3132-4476-aff8-12e024375542",
+        "target": "UpdateVariable",
+        "condition": {
+          "cel_expression": "data['DuplicateNGSIEMDetectionsQuery.results'].size() > 0 && data['DuplicateNGSIEMDetectionsQuery.results'].filter(e, e.alerted_before == true).size() > 0",
+          "display": [
+            "data[&#39;DuplicateNGSIEMDetectionsQuery.results&#39;].size() &gt; 0 &amp;&amp; data[&#39;DuplicateNGSIEMDetectionsQuery.results&#39;].filter(e, e.alerted_before == true).size() &gt; 0"
+          ]
+        }
+      },
+      "flow_3afb6e0a-fe83-4226-8b02-bc7d136ba52c": {
+        "source": "Loop",
+        "target": "gateway_decision_790e2a2f-9960-4ff5-a3a4-0fa171215040",
+        "condition": {}
+      },
+      "flow_7e06f35b-786b-4d60-b4a6-e6976b7c5ee5": {
+        "source": "UpdateVariable",
+        "target": "Loop",
+        "condition": {}
+      },
+      "flow_7f2d3084-d90f-4038-b733-67b4ce328d0c": {
+        "source": "AddCommentToDetection2",
+        "target": "SetDetectionStatus",
+        "condition": {}
+      },
+      "flow_8710168a-ea4c-44e1-bbed-d3ec1dab69c0": {
+        "source": "CreateVariable",
+        "target": "DuplicateNGSIEMDetectionsQuery",
+        "condition": {}
+      },
+      "flow_e0f2bbd1-f60e-4d84-bf1d-4e90a6ac1faf": {
+        "source": "trigger",
+        "target": "CreateVariable",
+        "condition": {}
+      },
+      "flow_f3fff65c-63cb-4f23-9eb3-f9a688ef8f56": {
+        "source": "gateway_decision_790e2a2f-9960-4ff5-a3a4-0fa171215040",
+        "target": "AddTagToAlert",
+        "condition": {
+          "expression": "WorkflowCustomVariable.is_duplicate_detection:true",
+          "display": [
+            "is_duplicate_detection is equal to True"
+          ]
+        }
+      },
+      "flow_f74df090-b973-40ac-81c6-8d39f68d6d7b": {
+        "source": "AddTagToAlert",
+        "target": "AddCommentToDetection2",
+        "condition": {}
+      }
+    },
+    "gateways": {
+      "gateway_decision_790e2a2f-9960-4ff5-a3a4-0fa171215040": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_3afb6e0a-fe83-4226-8b02-bc7d136ba52c"
+          ],
+          "outgoing": [
+            "flow_f3fff65c-63cb-4f23-9eb3-f9a688ef8f56"
+          ]
+        }
+      },
+      "gateway_decision_b17055a2-3132-4476-aff8-12e024375542": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_1e224503-0839-423c-a672-28273182da08"
+          ],
+          "outgoing": [
+            "flow_39b597f3-63d3-4423-83f7-0ae42f7a489f"
+          ]
+        }
+      }
+    },
+    "activities": {
+      "AddCommentToDetection2": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 2",
+        "flows": {
+          "incoming": "flow_f74df090-b973-40ac-81c6-8d39f68d6d7b",
+          "outgoing": "flow_7f2d3084-d90f-4038-b733-67b4ce328d0c"
+        },
+        "properties": {
+          "comment": "Auto-Closed : Duplicate Detection\n\nThis detection has been closed as it is a duplicate of detection\n${data['Trigger.SourceEventURL'].replace(data['Trigger.Detection.DetectionID'], data['WorkflowCustomVariable.original_detection_id'])}",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddTagToAlert": {
+        "id": "6de8a462880ad419680ed5c291b9413f",
+        "name": "Add tag to alert",
+        "flows": {
+          "incoming": "flow_f3fff65c-63cb-4f23-9eb3-f9a688ef8f56",
+          "outgoing": "flow_f74df090-b973-40ac-81c6-8d39f68d6d7b"
+        },
+        "properties": {
+          "investigatable_id": "${Trigger.Detection.DetectionID}",
+          "tag": "Duplicate Detection"
+        }
+      },
+      "CreateVariable": {
+        "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+        "class": "CreateVariable",
+        "name": "Create variable",
+        "flows": {
+          "incoming": "flow_e0f2bbd1-f60e-4d84-bf1d-4e90a6ac1faf",
+          "outgoing": "flow_8710168a-ea4c-44e1-bbed-d3ec1dab69c0"
+        },
+        "properties": {
+          "variable_schema": {
+            "properties": {
+              "alerted_before_detections": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "is_duplicate_detection": {
+                "type": "boolean"
+              },
+              "original_detection_id": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "DuplicateNGSIEMDetectionsQuery": {
+        "id": "cdf5c3e0d69f156eaaf56c1f5d3f1b66",
+        "class": "Inline.QueryEvent",
+        "name": "Duplicate NG-SIEM Detections Query",
+        "flows": {
+          "incoming": "flow_8710168a-ea4c-44e1-bbed-d3ec1dab69c0",
+          "outgoing": "flow_1e224503-0839-423c-a672-28273182da08"
+        },
+        "inline_configuration": {
+          "config": {
+            "description": "",
+            "end": "now",
+            "repo_or_view": "search-all",
+            "search_name": "Duplicate NG-SIEM Detections Query",
+            "search_query": "//Events for previous detections that do not include the current detection\n| defineTable(\n    query={\n        #repo=xdr_indicatorsrepo \n        | report_name=?detection_name Ngsiem.alert.id!=?detection_id\n        | Vendor.EventName = ScheduledReportNotificationEventIndicator\n        | split(Ngsiem.child.event.id)\n        | alerted_before := true\n        | previous_alert_id := Ngsiem.alert.id\n        | groupBy(\n            [Ngsiem.child.event.id], \n            function=collect([\n                alerted_before, previous_alert_id\n            ]), limit=max\n        )\n    }, \n    include=[Ngsiem.child.event.id, alerted_before, previous_alert_id], \n    name=\"previous_detection_event_ids\"\n)\n//Events from current detection\n| #repo=xdr_indicatorsrepo \n| Ngsiem.alert.id=?detection_id\n| Vendor.EventName = ScheduledReportNotificationEventIndicator\n| split(Ngsiem.child.event.id)\n| current_alert_id:=Ngsiem.alert.id\n| groupBy([Ngsiem.child.event.id], function=collect([current_alert_id]), limit=max)\n//show me any events that we have already alerted on\n| default(value=\"false\", field=[alerted_before])\n| match(file=\"previous_detection_event_ids\", field=[Ngsiem.child.event.id], include=[alerted_before,previous_alert_id], strict=false)\n| groupBy([alerted_before], function=collect([current_alert_id,previous_alert_id])) ",
+            "search_query_args": {
+              "detection_id": "*",
+              "detection_name": "*"
+            },
+            "start": "6h",
+            "tags": []
+          },
+          "input_schema": {
+            "$schema": "https://json-schema.org/draft-07/schema",
+            "properties": {
+              "detection_id": {
+                "type": "string",
+                "title": "Detection id",
+                "default": "*"
+              },
+              "detection_name": {
+                "type": "string",
+                "title": "Detection name",
+                "default": "*"
+              }
+            },
+            "required": [
+              "detection_id",
+              "detection_name"
+            ],
+            "type": "object",
+            "description": "Generated request schema"
+          },
+          "output_schema": {
+            "$schema": "https://json-schema.org/draft-07/schema",
+            "type": "object",
+            "description": "Generated response schema"
+          }
+        },
+        "properties": {
+          "detection_id": "${data['Trigger.Detection.DetectionID']}",
+          "detection_name": "${data['Trigger.Detection.Name']}",
+          "logscale_search_start_time": "1 day",
+          "output_files_only": false,
+          "workflow_csv_header_fields": [],
+          "workflow_export_event_query_results_to_csv": false
+        },
+        "version_constraint": "~1"
+      },
+      "SetDetectionStatus": {
+        "id": "beb56cc40d334583671ca91e6e390056",
+        "name": "Set detection status",
+        "flows": {
+          "incoming": "flow_7f2d3084-d90f-4038-b733-67b4ce328d0c",
+          "outgoing": "flow_07e7e6b4-c06b-4064-96d4-f0afc1472934"
+        },
+        "properties": {
+          "investigatable_id": "${Trigger.Detection.DetectionID}",
+          "status": "closed"
+        },
+        "version_constraint": "~0"
+      },
+      "UpdateVariable": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable - 3",
+        "flows": {
+          "incoming": "flow_39b597f3-63d3-4423-83f7-0ae42f7a489f",
+          "outgoing": "flow_7e06f35b-786b-4d60-b4a6-e6976b7c5ee5"
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "alerted_before_detections": "${data['DuplicateNGSIEMDetectionsQuery.results'].filter(e, e.alerted_before == true)[0].previous_alert_id.split(\"\\n\").distinct()}"
+          }
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_07e7e6b4-c06b-4064-96d4-f0afc1472934"
+      ]
+    },
+    "sub_models": {
+      "Loop": {
+        "model": {
+          "trigger": {
+            "id": "Loop",
+            "name": "",
+            "outgoing_flow": "flow_088a92fe-4a70-4423-9070-11269c7bff72",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "flow_088a92fe-4a70-4423-9070-11269c7bff72": {
+              "source": "trigger",
+              "target": "GetDetectionStatus",
+              "condition": {}
+            },
+            "flow_1fc9f932-76f5-4aea-b6b9-98487b95abb8": {
+              "source": "UpdateVariable2",
+              "target": "AddCommentToDetection",
+              "condition": {}
+            },
+            "flow_2662b1c1-e0f5-4bf2-8e5a-7a7c3b7f03ed": {
+              "source": "GetDetectionStatus",
+              "target": "gateway_decision_77a24c7b-60e0-4a24-913d-fe096aa9fa62",
+              "condition": {}
+            },
+            "flow_58d6a24a-facf-463a-8f9c-9e8a7d884ba3": {
+              "source": "AddCommentToDetection",
+              "target": "end",
+              "condition": {}
+            },
+            "flow_68b92f63-8e70-4e4d-b519-d10b406b4995": {
+              "source": "gateway_decision_77a24c7b-60e0-4a24-913d-fe096aa9fa62",
+              "target": "UpdateVariable2",
+              "condition": {
+                "cel_expression": "data['GetDetectionStatus.results'].size() == 0 || data['GetDetectionStatus.results'][0].last_status != \"closed\"",
+                "display": [
+                  "data[&#39;GetDetectionStatus.results&#39;].size() == 0 || data[&#39;GetDetectionStatus.results&#39;][0].last_status != &#34;closed&#34;"
+                ]
+              }
+            }
+          },
+          "gateways": {
+            "gateway_decision_77a24c7b-60e0-4a24-913d-fe096aa9fa62": {
+              "type": "exclusive",
+              "flows": {
+                "incoming": [
+                  "flow_2662b1c1-e0f5-4bf2-8e5a-7a7c3b7f03ed"
+                ],
+                "outgoing": [
+                  "flow_68b92f63-8e70-4e4d-b519-d10b406b4995"
+                ]
+              }
+            }
+          },
+          "activities": {
+            "AddCommentToDetection": {
+              "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+              "name": "Add comment to detection - 3",
+              "flows": {
+                "incoming": "flow_1fc9f932-76f5-4aea-b6b9-98487b95abb8",
+                "outgoing": "flow_58d6a24a-facf-463a-8f9c-9e8a7d884ba3"
+              },
+              "properties": {
+                "comment": "Duplicate Detected & Closed\n\nDetection Details:\nTime: ${timestamp(data['Workflow.Execution.Time'])}\nAlert Link: ${data['Trigger.SourceEventURL']}\n\nAction Taken:\nA duplicate of this detection was identified and automatically closed.",
+                "investigatable_id": "${data['WorkflowCustomVariable.alerted_before_detections.#']}"
+              },
+              "version_constraint": "~0"
+            },
+            "GetDetectionStatus": {
+              "id": "cdf5c3e0d69f156eaaf56c1f5d3f1b66",
+              "class": "Inline.QueryEvent",
+              "name": "Get Detection Status",
+              "flows": {
+                "incoming": "flow_088a92fe-4a70-4423-9070-11269c7bff72",
+                "outgoing": "flow_2662b1c1-e0f5-4bf2-8e5a-7a7c3b7f03ed"
+              },
+              "inline_configuration": {
+                "config": {
+                  "description": "",
+                  "end": "now",
+                  "repo_or_view": "search-all",
+                  "search_name": "Get Detection Status",
+                  "search_query": "#repo=\"detections\" #event_simpleName=\"Event_UserActivityAuditEvent\" Message=\"Alert updated\" Attributes.update_status=* Attributes.resource_id=?detection_id\n| last_status:=Attributes.update_status\n| groupBy([Attributes.resource_id],function=[collect([Attributes.update_status,Message]),selectLast(last_status)])",
+                  "search_query_args": {
+                    "detection_id": "*"
+                  },
+                  "start": "24h",
+                  "tags": []
+                },
+                "input_schema": {
+                  "$schema": "https://json-schema.org/draft-07/schema",
+                  "properties": {
+                    "detection_id": {
+                      "type": "string",
+                      "title": "Detection id",
+                      "default": "*"
+                    }
+                  },
+                  "required": [
+                    "detection_id"
+                  ],
+                  "type": "object",
+                  "description": "Generated request schema"
+                },
+                "output_schema": {
+                  "$schema": "https://json-schema.org/draft-07/schema",
+                  "type": "object",
+                  "description": "Generated response schema"
+                }
+              },
+              "properties": {
+                "detection_id": "${data['WorkflowCustomVariable.alerted_before_detections.#']}",
+                "logscale_search_start_time": "1 day",
+                "output_files_only": false,
+                "workflow_csv_header_fields": [],
+                "workflow_export_event_query_results_to_csv": false
+              },
+              "version_constraint": "~1"
+            },
+            "UpdateVariable2": {
+              "id": "6c6eab39063fa3b72d98c82af60deb8a",
+              "class": "UpdateVariable",
+              "name": "Update variable - 2",
+              "flows": {
+                "incoming": "flow_68b92f63-8e70-4e4d-b519-d10b406b4995",
+                "outgoing": "flow_1fc9f932-76f5-4aea-b6b9-98487b95abb8"
+              },
+              "properties": {
+                "WorkflowCustomVariable": {
+                  "is_duplicate_detection": true,
+                  "original_detection_id": "${data['WorkflowCustomVariable.alerted_before_detections.#']}"
+                }
+              },
+              "version_constraint": "~1"
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "flow_58d6a24a-facf-463a-8f9c-9e8a7d884ba3"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "WorkflowCustomVariable.alerted_before_detections",
+          "array_field_display_name": "alerted_before_detections",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0,
+          "sequential": true
+        },
+        "name": "For each alerted_before_detections; Sequentially",
+        "flows": {
+          "incoming": "flow_7e06f35b-786b-4d60-b4a6-e6976b7c5ee5",
+          "outgoing": "flow_3afb6e0a-fe83-4226-8b02-bc7d136ba52c"
+        }
+      }
+    }
+  },
+  "use_cases": [
+    "SIEM"
+  ],
+  "vendors": [
+    "CrowdStrike"
+  ],
+  "complexity": 6,
+  "trigger_type": "Event",
+  "id": "e066f4a1dee649c4965c31f76838cad2",
+  "version": "0.133.0",
+  "created_timestamp": "2026-01-23T01:33:55.869320655Z",
+  "last_modified_timestamp": "2026-01-23T01:33:55.852361469Z",
+  "activities": [
+    {
+      "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+      "name": "Add comment to alert"
+    },
+    {
+      "id": "6de8a462880ad419680ed5c291b9413f",
+      "name": "Add tag to alert"
+    },
+    {
+      "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+      "name": "Create variable"
+    },
+    {
+      "id": "cdf5c3e0d69f156eaaf56c1f5d3f1b66",
+      "name": "Workflow-specific event query"
+    },
+    {
+      "id": "beb56cc40d334583671ca91e6e390056",
+      "name": "Set detection status"
+    },
+    {
+      "id": "6c6eab39063fa3b72d98c82af60deb8a",
+      "name": "Update variable"
+    }
+  ],
+  "trigger": {
+    "id": "b6bd895edf634f7c7a34a23b44f0610d",
+    "name": "Detection > NG-SIEM Detection"
+  }
+}

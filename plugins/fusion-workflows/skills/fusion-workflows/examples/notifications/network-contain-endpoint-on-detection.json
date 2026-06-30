@@ -1,0 +1,951 @@
+{
+  "name": "Network Contain Endpoint on Detection",
+  "description": "Automatically contains endpoints when Critical severity detections are triggered from Endpoint Protection (EPP), Next-Gen SIEM, Data Protection, or QuickScanPro products, requiring human approval via email before executing containment actions. Note: This playbook operates in dry run mode by default. Organizations are strongly encouraged to run the playbook in dry run mode initially to evaluate potential operational impact before enabling preventive mode, as actions performed by this playbook may impact production systems and end users. To enable preventive actions, the enable_preventive_actions variable must be set to true.",
+  "model": {
+    "trigger": {
+      "id": "72fe3ef1aa87ca3c25a247afe8b55af7",
+      "name": "Detection",
+      "outgoing_flow": "flow_1b8836e9-b0e7-4252-8298-e73bde6f3877",
+      "trigger_type": "Signal",
+      "version_constraint": "~1"
+    },
+    "flows": {
+      "FROM_product_is_equal_to_data_protection_detection_TO_ContainDevice3": {
+        "source": "product_is_equal_to_epp_detection",
+        "target": "RequestHumanInputSendEmail3",
+        "condition": {
+          "cel_expression": "data['Trigger.Detection.Product'] == 'DATA-PROTECTION' && data['Trigger.Detection.DataProtection.AgentID'].size()>0",
+          "display": [
+            "data[&#39;Trigger.Detection.Product&#39;] == &#39;DATA-PROTECTION&#39; &amp;&amp; data[&#39;Trigger.Detection.DataProtection.AgentID&#39;].size()&gt;0"
+          ]
+        }
+      },
+      "FROM_product_is_equal_to_epp_detection_TO_ContainDevice": {
+        "source": "product_is_equal_to_epp_detection",
+        "target": "RequestHumanInputSendEmail",
+        "condition": {
+          "cel_expression": "data['Trigger.Detection.Product'] == 'EPP' && data['Trigger.Detection.EPP.Sensor.SensorID'].size()>0",
+          "display": [
+            "data[&#39;Trigger.Detection.Product&#39;] == &#39;EPP&#39; &amp;&amp; data[&#39;Trigger.Detection.EPP.Sensor.SensorID&#39;].size()&gt;0"
+          ]
+        }
+      },
+      "FROM_product_is_equal_to_epp_detection_TO_severity_is_not_equal_to_informational": {
+        "source": "product_is_equal_to_epp_detection",
+        "target": "DeviceQuery",
+        "condition": {
+          "cel_expression": "data['Trigger.Detection.Product'] == 'NGSIEM' && data['Trigger.Detection.NGSIEM.HostNames'].size() > 0",
+          "display": [
+            "data[&#39;Trigger.Detection.Product&#39;] == &#39;NGSIEM&#39; &amp;&amp; data[&#39;Trigger.Detection.NGSIEM.HostNames&#39;].size() &gt; 0"
+          ]
+        }
+      },
+      "FROM_product_is_equal_to_quickscanpro_detection_TO_ContainDevice4": {
+        "source": "product_is_equal_to_epp_detection",
+        "target": "RequestHumanInputSendEmail2",
+        "condition": {
+          "cel_expression": "data['Trigger.Detection.Product'] == 'QUICKSCANPRO' && data['Trigger.Detection.QUICKSCANPRO.AgentID'].size()>0",
+          "display": [
+            "data[&#39;Trigger.Detection.Product&#39;] == &#39;QUICKSCANPRO&#39; &amp;&amp; data[&#39;Trigger.Detection.QUICKSCANPRO.AgentID&#39;].size()&gt;0"
+          ]
+        }
+      },
+      "flow_0189e7f4-f0be-400a-9f5f-3701138f8d1c": {
+        "source": "product_is_equal_to_epp_detection",
+        "target": "AddCommentToDetection2",
+        "condition": {}
+      },
+      "flow_06abb108-cf32-421f-b418-6d89de553af7": {
+        "source": "AddCommentToDetection13",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_0a60d3e6-f724-4a74-a6dd-6f980cababce": {
+        "source": "UpdateVariable",
+        "target": "gateway_decision_0471ba1a-f139-4b22-b615-dd2263acf59a",
+        "condition": {}
+      },
+      "flow_0a6ffe09-940f-46af-b64c-e4d47dc4c03f": {
+        "source": "gateway_decision_5db57946-5992-498f-ac4d-ae42400a4ebc",
+        "target": "CreateVariable",
+        "condition": {
+          "expression": "(Trigger.Detection.Product:'EPP'),(Trigger.Detection.Product:'QUICKSCANPRO'),(Trigger.Detection.Product:'DATA-PROTECTION'),(Trigger.Detection.Product:'NGSIEM')",
+          "display": [
+            "[[&#34;Product is equal to EPP Detection&#34;],[&#34;Product is equal to QuickScanPro Detection&#34;],[&#34;Product is equal to Data Protection Detection&#34;],[&#34;Product is equal to NG-SIEM Detection&#34;]]"
+          ]
+        }
+      },
+      "flow_0b471884-1253-44c0-b6a1-70e69256923f": {
+        "source": "gateway_decision_63c53687-1b30-4b66-ba86-f4692d189b24",
+        "target": "AddCommentToDetection11",
+        "condition": {}
+      },
+      "flow_12b543fe-a1d8-45e1-83bd-6352fdeae99f": {
+        "source": "CreateVariable",
+        "target": "UpdateVariable",
+        "condition": {}
+      },
+      "flow_148c58cb-5832-4d2a-b731-2aad06f91093": {
+        "source": "gateway_decision_0471ba1a-f139-4b22-b615-dd2263acf59a",
+        "target": "product_is_equal_to_epp_detection",
+        "condition": {
+          "expression": "WorkflowCustomVariable.enable_preventive_actions:true",
+          "display": [
+            "enable_preventive_actions is equal to True"
+          ]
+        }
+      },
+      "flow_1b8836e9-b0e7-4252-8298-e73bde6f3877": {
+        "source": "trigger",
+        "target": "gateway_decision_5f729161-ea8f-4493-8314-48c52eeb7396",
+        "condition": {}
+      },
+      "flow_21852183-6f47-419f-867f-7044c1acffe9": {
+        "source": "gateway_decision_85e4c577-4c16-4c60-8b71-c6cf6cf3011b",
+        "target": "AddCommentToDetection6",
+        "condition": {
+          "expression": "(RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.user_response:'Decline'),(RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.user_response:'Timed out')",
+          "display": [
+            "[[&#34;Human response is equal to Decline&#34;],[&#34;Human response is equal to Timed out&#34;]]"
+          ]
+        }
+      },
+      "flow_30b0651c-1819-4b5e-9afb-69fb0300f188": {
+        "source": "WriteToLogRepo3",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_353bb948-0d65-49b0-a81b-c1798dd00d0a": {
+        "source": "WriteToLogRepo2",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_35623221-8679-40f0-84b6-e334c035d2c8": {
+        "source": "AddCommentToDetection7",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_3bd0dfad-ad1b-4a60-b72e-d9d32648aa30": {
+        "source": "RequestHumanInputSendEmail5",
+        "target": "gateway_decision_d5847599-10dc-4766-a8eb-b871e2a30bf0",
+        "condition": {}
+      },
+      "flow_4a0c95eb-214e-4aa2-8837-65eee9ad81a0": {
+        "source": "gateway_decision_63c53687-1b30-4b66-ba86-f4692d189b24",
+        "target": "RequestHumanInputSendEmail5",
+        "condition": {
+          "cel_expression": "data['DeviceQuery.Device.query.devices'] != null && data['DeviceQuery.Device.query.devices'].size() > 0",
+          "display": [
+            "data[&#39;DeviceQuery.Device.query.devices&#39;] != null &amp;&amp; data[&#39;DeviceQuery.Device.query.devices&#39;].size() &gt; 0"
+          ]
+        }
+      },
+      "flow_4b8a983f-0f81-47ea-ae82-34bf0cbf8c70": {
+        "source": "RequestHumanInputSendEmail",
+        "target": "gateway_decision_8a6e77d9-9eb5-4962-9025-564d2c55fbce",
+        "condition": {}
+      },
+      "flow_4ccddbf0-7e5c-4404-9876-d74510a618b4": {
+        "source": "gateway_decision_d1b1e8be-2f1b-437d-9e33-6dc1534f36be",
+        "target": "AddCommentToDetection5",
+        "condition": {
+          "expression": "(RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.user_response:'Decline'),(RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.user_response:'Timed out')",
+          "display": [
+            "[[&#34;Human response is equal to Decline&#34;],[&#34;Human response is equal to Timed out&#34;]]"
+          ]
+        }
+      },
+      "flow_514c514e-30a2-42f8-8964-6c4e84a62c59": {
+        "source": "Loop",
+        "target": "AddCommentToDetection15",
+        "condition": {}
+      },
+      "flow_5a6db5d9-2e39-4bc3-b7bc-5b76d604bd0f": {
+        "source": "ContainDevice3",
+        "target": "AddCommentToDetection14",
+        "condition": {}
+      },
+      "flow_61a8097e-3cfb-4904-9b7d-a8cb55f49af4": {
+        "source": "AddCommentToDetection6",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_67b117d3-b06c-42e7-8619-4be803cf5075": {
+        "source": "DeviceQuery",
+        "target": "gateway_decision_63c53687-1b30-4b66-ba86-f4692d189b24",
+        "condition": {}
+      },
+      "flow_720f9d29-ed5c-4a4e-aa61-d6cd003520fa": {
+        "source": "ContainDevice4",
+        "target": "AddCommentToDetection13",
+        "condition": {}
+      },
+      "flow_741fec20-0405-48f3-99b8-b40aa7c5baee": {
+        "source": "RequestHumanInputSendEmail3",
+        "target": "gateway_decision_85e4c577-4c16-4c60-8b71-c6cf6cf3011b",
+        "condition": {}
+      },
+      "flow_76b1ad7d-edda-437c-b79c-349b25b334f9": {
+        "source": "gateway_decision_5f729161-ea8f-4493-8314-48c52eeb7396",
+        "target": "gateway_decision_5db57946-5992-498f-ac4d-ae42400a4ebc",
+        "condition": {
+          "expression": "Trigger.Detection.Severity:>=5",
+          "display": [
+            "Severity is greater than or equal to Critical"
+          ]
+        }
+      },
+      "flow_7a89b7c7-238a-4ea5-9156-c2f86ff26578": {
+        "source": "AddCommentToDetection",
+        "target": "WriteToLogRepo",
+        "condition": {}
+      },
+      "flow_7f00267c-2b28-4a2f-aacc-eb2ba67bb745": {
+        "source": "ContainDevice",
+        "target": "AddCommentToDetection12",
+        "condition": {}
+      },
+      "flow_9125cfd0-a2cd-4001-8755-1d5e808582a2": {
+        "source": "AddCommentToDetection14",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_b013fd49-d6c4-4dc7-8b9a-1f44b1bfef6c": {
+        "source": "AddCommentToDetection4",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_b30c7476-6c6f-4610-9924-351714ce6f3b": {
+        "source": "AddCommentToDetection15",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_b794f7d3-3327-4dbd-8314-d2317411cb67": {
+        "source": "gateway_decision_d1b1e8be-2f1b-437d-9e33-6dc1534f36be",
+        "target": "ContainDevice4",
+        "condition": {
+          "expression": "RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.user_response:'Approve'",
+          "display": [
+            "Human response is equal to Approve"
+          ]
+        }
+      },
+      "flow_b7d9bd06-f1e7-4fb4-a0f0-57896006865b": {
+        "source": "gateway_decision_8a6e77d9-9eb5-4962-9025-564d2c55fbce",
+        "target": "AddCommentToDetection4",
+        "condition": {
+          "expression": "(RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.user_response:'Decline'),(RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.user_response:'Timed out')",
+          "display": [
+            "[[&#34;Human response is equal to Decline&#34;],[&#34;Human response is equal to Timed out&#34;]]"
+          ]
+        }
+      },
+      "flow_bb767632-2772-4dfb-be43-290aad09093d": {
+        "source": "WriteToLogRepo",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_bd033a58-254c-461a-a21a-d33196da84e6": {
+        "source": "gateway_decision_0471ba1a-f139-4b22-b615-dd2263acf59a",
+        "target": "AddCommentToDetection",
+        "condition": {}
+      },
+      "flow_be7cb05c-40e3-4fba-adb2-6220221b13e7": {
+        "source": "AddCommentToDetection5",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_c94a609f-89ec-4b1e-9fcd-736ee39a30e6": {
+        "source": "RequestHumanInputSendEmail2",
+        "target": "gateway_decision_d1b1e8be-2f1b-437d-9e33-6dc1534f36be",
+        "condition": {}
+      },
+      "flow_d9351832-d78b-4de1-b13a-ef8ba4b5a9c6": {
+        "source": "gateway_decision_d5847599-10dc-4766-a8eb-b871e2a30bf0",
+        "target": "Loop",
+        "condition": {
+          "expression": "RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.user_response:'Approve'",
+          "display": [
+            "Human response is equal to Approve"
+          ]
+        }
+      },
+      "flow_dc8bf8d6-9a13-4b66-98a0-5cf74d50592f": {
+        "source": "gateway_decision_d5847599-10dc-4766-a8eb-b871e2a30bf0",
+        "target": "AddCommentToDetection7",
+        "condition": {
+          "expression": "(RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.user_response:'Decline'),(RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.user_response:'Timed out')",
+          "display": [
+            "[[&#34;Human response is equal to Decline&#34;],[&#34;Human response is equal to Timed out&#34;]]"
+          ]
+        }
+      },
+      "flow_ddcf4d5b-0b6c-49f5-bce1-f65d2a08caf2": {
+        "source": "AddCommentToDetection2",
+        "target": "WriteToLogRepo2",
+        "condition": {}
+      },
+      "flow_e025b358-815f-45dd-be02-450713fc90b9": {
+        "source": "AddCommentToDetection12",
+        "target": "end",
+        "condition": {}
+      },
+      "flow_e2d0c47b-0d35-45b5-a25b-24898d8f41b2": {
+        "source": "gateway_decision_8a6e77d9-9eb5-4962-9025-564d2c55fbce",
+        "target": "ContainDevice",
+        "condition": {
+          "expression": "RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.user_response:'Approve'",
+          "display": [
+            "Human response is equal to Approve"
+          ]
+        }
+      },
+      "flow_e6a72c4e-3e1b-4f64-9a58-149cdca446b7": {
+        "source": "AddCommentToDetection11",
+        "target": "WriteToLogRepo3",
+        "condition": {}
+      },
+      "flow_ee2aaf4a-04a3-4fe1-a897-a33470a661f2": {
+        "source": "gateway_decision_85e4c577-4c16-4c60-8b71-c6cf6cf3011b",
+        "target": "ContainDevice3",
+        "condition": {
+          "expression": "RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.user_response:'Approve'",
+          "display": [
+            "Human response is equal to Approve"
+          ]
+        }
+      }
+    },
+    "gateways": {
+      "gateway_decision_0471ba1a-f139-4b22-b615-dd2263acf59a": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_0a60d3e6-f724-4a74-a6dd-6f980cababce"
+          ],
+          "outgoing": [
+            "flow_148c58cb-5832-4d2a-b731-2aad06f91093",
+            "flow_bd033a58-254c-461a-a21a-d33196da84e6"
+          ],
+          "default": "flow_bd033a58-254c-461a-a21a-d33196da84e6"
+        }
+      },
+      "gateway_decision_5db57946-5992-498f-ac4d-ae42400a4ebc": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_76b1ad7d-edda-437c-b79c-349b25b334f9"
+          ],
+          "outgoing": [
+            "flow_0a6ffe09-940f-46af-b64c-e4d47dc4c03f"
+          ]
+        }
+      },
+      "gateway_decision_5f729161-ea8f-4493-8314-48c52eeb7396": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_1b8836e9-b0e7-4252-8298-e73bde6f3877"
+          ],
+          "outgoing": [
+            "flow_76b1ad7d-edda-437c-b79c-349b25b334f9"
+          ]
+        }
+      },
+      "gateway_decision_63c53687-1b30-4b66-ba86-f4692d189b24": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_67b117d3-b06c-42e7-8619-4be803cf5075"
+          ],
+          "outgoing": [
+            "flow_4a0c95eb-214e-4aa2-8837-65eee9ad81a0",
+            "flow_0b471884-1253-44c0-b6a1-70e69256923f"
+          ],
+          "default": "flow_0b471884-1253-44c0-b6a1-70e69256923f"
+        }
+      },
+      "gateway_decision_85e4c577-4c16-4c60-8b71-c6cf6cf3011b": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_741fec20-0405-48f3-99b8-b40aa7c5baee"
+          ],
+          "outgoing": [
+            "flow_ee2aaf4a-04a3-4fe1-a897-a33470a661f2",
+            "flow_21852183-6f47-419f-867f-7044c1acffe9"
+          ]
+        }
+      },
+      "gateway_decision_8a6e77d9-9eb5-4962-9025-564d2c55fbce": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_4b8a983f-0f81-47ea-ae82-34bf0cbf8c70"
+          ],
+          "outgoing": [
+            "flow_e2d0c47b-0d35-45b5-a25b-24898d8f41b2",
+            "flow_b7d9bd06-f1e7-4fb4-a0f0-57896006865b"
+          ]
+        }
+      },
+      "gateway_decision_d1b1e8be-2f1b-437d-9e33-6dc1534f36be": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_c94a609f-89ec-4b1e-9fcd-736ee39a30e6"
+          ],
+          "outgoing": [
+            "flow_b794f7d3-3327-4dbd-8314-d2317411cb67",
+            "flow_4ccddbf0-7e5c-4404-9876-d74510a618b4"
+          ]
+        }
+      },
+      "gateway_decision_d5847599-10dc-4766-a8eb-b871e2a30bf0": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_3bd0dfad-ad1b-4a60-b72e-d9d32648aa30"
+          ],
+          "outgoing": [
+            "flow_d9351832-d78b-4de1-b13a-ef8ba4b5a9c6",
+            "flow_dc8bf8d6-9a13-4b66-98a0-5cf74d50592f"
+          ]
+        }
+      },
+      "product_is_equal_to_epp_detection": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "flow_148c58cb-5832-4d2a-b731-2aad06f91093"
+          ],
+          "outgoing": [
+            "FROM_product_is_equal_to_epp_detection_TO_ContainDevice",
+            "FROM_product_is_equal_to_quickscanpro_detection_TO_ContainDevice4",
+            "FROM_product_is_equal_to_data_protection_detection_TO_ContainDevice3",
+            "FROM_product_is_equal_to_epp_detection_TO_severity_is_not_equal_to_informational",
+            "flow_0189e7f4-f0be-400a-9f5f-3701138f8d1c"
+          ],
+          "default": "flow_0189e7f4-f0be-400a-9f5f-3701138f8d1c"
+        }
+      }
+    },
+    "activities": {
+      "AddCommentToDetection": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 10",
+        "flows": {
+          "incoming": "flow_bd033a58-254c-461a-a21a-d33196da84e6",
+          "outgoing": "flow_7a89b7c7-238a-4ea5-9156-c2f86ff26578"
+        },
+        "properties": {
+          "_fields": [],
+          "comment": "Workflow ${data['Workflow.Definition.Name']} is currently running with enable_preventive_actions set to ${data['WorkflowCustomVariable.enable_preventive_actions']}. The hosts associated with this detection would have been contained if enable_preventive_actions were set to True.",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection11": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 11",
+        "flows": {
+          "incoming": "flow_0b471884-1253-44c0-b6a1-70e69256923f",
+          "outgoing": "flow_e6a72c4e-3e1b-4f64-9a58-149cdca446b7"
+        },
+        "properties": {
+          "_fields": [
+            "${Trigger.Detection.Name}",
+            "${Trigger.Detection.Product}"
+          ],
+          "comment": "The ${data['Workflow.Definition.Name']} workflow did not contain the device(s) because no associated host(s) were found in the UI.",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection12": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 12",
+        "flows": {
+          "incoming": "flow_7f00267c-2b28-4a2f-aacc-eb2ba67bb745",
+          "outgoing": "flow_e025b358-815f-45dd-be02-450713fc90b9"
+        },
+        "properties": {
+          "comment": "${data['Workflow.Definition.Name']} executed successfully. Host(s) associated with this detection were contained following approval by ${data['RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.responder']}.\n",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection13": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 13",
+        "flows": {
+          "incoming": "flow_720f9d29-ed5c-4a4e-aa61-d6cd003520fa",
+          "outgoing": "flow_06abb108-cf32-421f-b418-6d89de553af7"
+        },
+        "properties": {
+          "comment": "${data['Workflow.Definition.Name']} executed successfully. Host(s) associated with this detection were contained following approval by ${data['RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.responder']}.\n",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection14": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 14",
+        "flows": {
+          "incoming": "flow_5a6db5d9-2e39-4bc3-b7bc-5b76d604bd0f",
+          "outgoing": "flow_9125cfd0-a2cd-4001-8755-1d5e808582a2"
+        },
+        "properties": {
+          "comment": "${data['Workflow.Definition.Name']} executed successfully. Host(s) associated with this detection were contained following approval by ${data['RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.responder']}.",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection15": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 15",
+        "flows": {
+          "incoming": "flow_514c514e-30a2-42f8-8964-6c4e84a62c59",
+          "outgoing": "flow_b30c7476-6c6f-4610-9924-351714ce6f3b"
+        },
+        "properties": {
+          "comment": "${data['Workflow.Definition.Name']} executed successfully. Host(s) associated with this detection were contained following approval by ${data['RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.responder']}.\n",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection2": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 9",
+        "flows": {
+          "incoming": "flow_0189e7f4-f0be-400a-9f5f-3701138f8d1c",
+          "outgoing": "flow_ddcf4d5b-0b6c-49f5-bce1-f65d2a08caf2"
+        },
+        "properties": {
+          "_fields": [
+            "${Trigger.Detection.Name}",
+            "${Trigger.Detection.Product}"
+          ],
+          "comment": "The ${data['Workflow.Definition.Name']} workflow did not contain the device(s) because no associated host(s) were found in the UI.",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection4": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 4",
+        "flows": {
+          "incoming": "flow_b7d9bd06-f1e7-4fb4-a0f0-57896006865b",
+          "outgoing": "flow_b013fd49-d6c4-4dc7-8b9a-1f44b1bfef6c"
+        },
+        "properties": {
+          "_fields": [
+            "${RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.responder}",
+            "${RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.user_response}",
+            "${RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.note}"
+          ],
+          "comment": "Host with Hostname: ${data['Trigger.Detection.EPP.Sensor.Hostname']} was not contained as no approval for containment was obtained from ${data['RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.responder']}",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection5": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 8",
+        "flows": {
+          "incoming": "flow_4ccddbf0-7e5c-4404-9876-d74510a618b4",
+          "outgoing": "flow_be7cb05c-40e3-4fba-adb2-6220221b13e7"
+        },
+        "properties": {
+          "_fields": [
+            "${RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.responder}",
+            "${RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.user_response}",
+            "${RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.note}"
+          ],
+          "comment": "Host with ID: ${data['Trigger.Detection.QUICKSCANPRO.AgentID']} was not contained as no approval for containment was obtained from ${data['RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.responder']}",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection6": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 6",
+        "flows": {
+          "incoming": "flow_21852183-6f47-419f-867f-7044c1acffe9",
+          "outgoing": "flow_61a8097e-3cfb-4904-9b7d-a8cb55f49af4"
+        },
+        "properties": {
+          "_fields": [
+            "${RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.responder}",
+            "${RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.user_response}",
+            "${RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.note}"
+          ],
+          "comment": "Host with ID: ${data['Trigger.Detection.DataProtection.AgentID']} was not contained as no approval for containment was obtained from ${data['RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.responder']}",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "AddCommentToDetection7": {
+        "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+        "name": "Add comment to detection - 7",
+        "flows": {
+          "incoming": "flow_dc8bf8d6-9a13-4b66-98a0-5cf74d50592f",
+          "outgoing": "flow_35623221-8679-40f0-84b6-e334c035d2c8"
+        },
+        "properties": {
+          "_fields": [
+            "${RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.responder}",
+            "${RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.user_response}",
+            "${RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.note}"
+          ],
+          "comment": "Host(s) associated with ${data['Trigger.Detection.Product']} detection ${data['Trigger.Detection.Name']} were not contained as no approval for containment was obtained from ${data['RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.responder']}",
+          "investigatable_id": "${Trigger.Detection.DetectionID}"
+        },
+        "version_constraint": "~0"
+      },
+      "ContainDevice": {
+        "id": "bec9fbeb4999d207937854fd56088107",
+        "name": "Contain device - 5",
+        "flows": {
+          "incoming": "flow_e2d0c47b-0d35-45b5-a25b-24898d8f41b2",
+          "outgoing": "flow_7f00267c-2b28-4a2f-aacc-eb2ba67bb745"
+        },
+        "properties": {
+          "device_id": "${Trigger.Detection.EPP.Sensor.SensorID}",
+          "note": "${data['Workflow.Definition.Name']} was executed successfully and this host was contained following approval by ${data['RequestHumanInputSendEmail.RequestHumanInput.SendEmail.result.responder']}."
+        }
+      },
+      "ContainDevice3": {
+        "id": "bec9fbeb4999d207937854fd56088107",
+        "name": "Contain device - 6",
+        "flows": {
+          "incoming": "flow_ee2aaf4a-04a3-4fe1-a897-a33470a661f2",
+          "outgoing": "flow_5a6db5d9-2e39-4bc3-b7bc-5b76d604bd0f"
+        },
+        "properties": {
+          "device_id": "${Trigger.Detection.DataProtection.AgentID}",
+          "note": "${data['Workflow.Definition.Name']} was executed successfully and this host was contained following approval by ${data['RequestHumanInputSendEmail3.RequestHumanInput.SendEmail.result.responder']}."
+        }
+      },
+      "ContainDevice4": {
+        "id": "bec9fbeb4999d207937854fd56088107",
+        "name": "Contain device - 7",
+        "flows": {
+          "incoming": "flow_b794f7d3-3327-4dbd-8314-d2317411cb67",
+          "outgoing": "flow_720f9d29-ed5c-4a4e-aa61-d6cd003520fa"
+        },
+        "properties": {
+          "device_id": "${Trigger.Detection.QUICKSCANPRO.AgentID}",
+          "note": "${data['Workflow.Definition.Name']} was executed successfully and this host was contained following approval by ${data['RequestHumanInputSendEmail2.RequestHumanInput.SendEmail.result.responder']}."
+        }
+      },
+      "CreateVariable": {
+        "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+        "class": "CreateVariable",
+        "name": "Create variable",
+        "flows": {
+          "incoming": "flow_0a6ffe09-940f-46af-b64c-e4d47dc4c03f",
+          "outgoing": "flow_12b543fe-a1d8-45e1-83bd-6352fdeae99f"
+        },
+        "properties": {
+          "variable_schema": {
+            "properties": {
+              "enable_preventive_actions": {
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "DeviceQuery": {
+        "id": "68ffa99af40c84b36462daa076f535d0",
+        "name": "Device Query",
+        "flows": {
+          "incoming": "FROM_product_is_equal_to_epp_detection_TO_severity_is_not_equal_to_informational",
+          "outgoing": "flow_67b117d3-b06c-42e7-8619-4be803cf5075"
+        },
+        "properties": {
+          "hostnames": [
+            "${Trigger.Detection.NGSIEM.HostNames}"
+          ]
+        }
+      },
+      "RequestHumanInputSendEmail": {
+        "id": "d6731c10b24834e2e0f4bd9d390a29c8",
+        "name": "Request human input - Send email - 6",
+        "flows": {
+          "incoming": "FROM_product_is_equal_to_epp_detection_TO_ContainDevice",
+          "outgoing": "flow_4b8a983f-0f81-47ea-ae82-34bf0cbf8c70"
+        },
+        "properties": {
+          "_fields": [
+            "${WorkflowCustomVariable.enable_preventive_actions}"
+          ],
+          "allowed_responses": [
+            "Approve",
+            "Decline"
+          ],
+          "msg": "<p>Hi Team</p>\n<p>A detection requires containment approval as per the <strong>${data['Workflow.Definition.Name']}</strong> workflow. </p>\n<p><strong>Detection Details:</strong></p>\n<ul>\n  <li><strong>Host:</strong> ${data['Trigger.Detection.EPP.Sensor.Hostname']}</li>\n  <li><strong>Detection Name:</strong> <a href=\"${data['Trigger.Detection.EPP.URL']}\">${data['Trigger.Detection.Name']}</a></li>\n  <li><strong>Severity:</strong> ${data['Trigger.Detection.SeverityDisplayName']}</li>\n  <li><strong>Tactic:</strong> ${data['Trigger.Detection.EPP.Behavior.TacticName']}</li>\n</ul>\n<p><strong>Action Required:</strong><br>Please review the detection and approve/deny containment action.</p>\n",
+          "msg_type": "html",
+          "responders": [],
+          "subject": "Approve Containment for ${data['Trigger.Detection.SeverityDisplayName']} on ${data['Trigger.Detection.EPP.Sensor.Hostname']}",
+          "user_input_timeout": "90m"
+        }
+      },
+      "RequestHumanInputSendEmail2": {
+        "id": "d6731c10b24834e2e0f4bd9d390a29c8",
+        "name": "Request human input - Send email - 4",
+        "flows": {
+          "incoming": "FROM_product_is_equal_to_quickscanpro_detection_TO_ContainDevice4",
+          "outgoing": "flow_c94a609f-89ec-4b1e-9fcd-736ee39a30e6"
+        },
+        "properties": {
+          "allowed_responses": [
+            "Approve",
+            "Decline"
+          ],
+          "msg": "<p>Hi Team</p>\n<p>A detection requires containment approval as per the <strong>${data['Workflow.Definition.Name']}</strong> workflow.</p>\n<p><strong>Detection Details:</strong></p>\n<ul>\n<li><strong>Product Type:</strong> ${data['Trigger.Detection.Product']}</li>\n  <li><strong>HostID:</strong> ${data['Trigger.Detection.QUICKSCANPRO.AgentID']}</li>\n  <li><strong>Detection Name:</strong> <a href=\"${data['Trigger.SourceEventURL']}\">${data['Trigger.Detection.Name']}</a></li>\n  <li><strong>Severity:</strong> ${data['Trigger.Detection.SeverityDisplayName']}</li>\n  <li><strong>Description:</strong> ${data['Trigger.Detection.Description']}</li>\n</ul>\n<p><strong>Action Required:</strong><br>Please review the detection and approve/deny containment action.</p>\n",
+          "msg_type": "html",
+          "responders": [],
+          "subject": "Approve Containment for ${data['Trigger.Detection.SeverityDisplayName']} ${data['Trigger.Detection.Product']} Detection on HostID: ${data['Trigger.Detection.QUICKSCANPRO.AgentID']}",
+          "user_input_timeout": "90m"
+        }
+      },
+      "RequestHumanInputSendEmail3": {
+        "id": "d6731c10b24834e2e0f4bd9d390a29c8",
+        "name": "Request human input - Send email - 3",
+        "flows": {
+          "incoming": "FROM_product_is_equal_to_data_protection_detection_TO_ContainDevice3",
+          "outgoing": "flow_741fec20-0405-48f3-99b8-b40aa7c5baee"
+        },
+        "properties": {
+          "_fields": [
+            "${WorkflowCustomVariable.enable_preventive_actions}"
+          ],
+          "allowed_responses": [
+            "Approve",
+            "Decline"
+          ],
+          "msg": "<p>Hi Team</p>\n<p>A detection requires containment approval as per the <strong>${data['Workflow.Definition.Name']}</strong> workflow.</p>\n<p><strong>Detection Details:</strong></p>\n<ul>\n<li><strong>Product Type:</strong> ${data['Trigger.Detection.Product']}</li>\n  <li><strong>HostID:</strong> ${data['Trigger.Detection.DataProtection.AgentID']}</li>\n  <li><strong>Detection Name:</strong> <a href=\"${data['Trigger.SourceEventURL']}\">${data['Trigger.Detection.Name']}</a></li>\n  <li><strong>Severity:</strong> ${data['Trigger.Detection.SeverityDisplayName']}</li>\n  <li><strong>Description:</strong> ${data['Trigger.Detection.Description']}</li>\n</ul>\n<p><strong>Action Required:</strong><br>Please review the detection and approve/deny containment action.</p>",
+          "msg_type": "html",
+          "responders": [],
+          "subject": "Approve Containment for ${data['Trigger.Detection.SeverityDisplayName']} on HostID: ${data['Trigger.Detection.DataProtection.AgentID']}",
+          "user_input_timeout": "90m"
+        }
+      },
+      "RequestHumanInputSendEmail5": {
+        "id": "d6731c10b24834e2e0f4bd9d390a29c8",
+        "name": "Request human input - Send email - 5",
+        "flows": {
+          "incoming": "flow_4a0c95eb-214e-4aa2-8837-65eee9ad81a0",
+          "outgoing": "flow_3bd0dfad-ad1b-4a60-b72e-d9d32648aa30"
+        },
+        "properties": {
+          "allowed_responses": [
+            "Approve",
+            "Decline"
+          ],
+          "msg": "<p>Hi Team</p>\n<p>A detection requires containment approval as per the <strong>${data['Workflow.Definition.Name']}</strong> workflow.</p>\n<p><strong>Detection Details:</strong></p>\n<ul>\n<li><strong>Product Type:</strong> ${data['Trigger.Detection.Product']}</li>\n<li><strong>Hostnames:</strong><br><pre style=\"font-family: inherit; margin: 5px 0; white-space: pre-wrap;\">${data['Trigger.Detection.NGSIEM.HostNames']}</pre></li>\n  <li><strong>Detection Name:</strong> <a href=\"${data['Trigger.SourceEventURL']}\">${data['Trigger.Detection.Name']}</a></li>\n  <li><strong>Severity:</strong> ${data['Trigger.Detection.SeverityDisplayName']}</li>\n  <li><strong>Description:</strong> ${data['Trigger.Detection.Description']}</li>\n</ul>\n<p><strong>Action Required:</strong><br>Please review the detection and approve/deny containment action.</p>\n",
+          "msg_type": "html",
+          "responders": [],
+          "subject": "Approve Containment for ${data['Trigger.Detection.SeverityDisplayName']} ${data['Trigger.Detection.Product']} Detection on host(s)",
+          "user_input_timeout": "90m"
+        }
+      },
+      "UpdateVariable": {
+        "id": "6c6eab39063fa3b72d98c82af60deb8a",
+        "class": "UpdateVariable",
+        "name": "Update variable",
+        "flows": {
+          "incoming": "flow_12b543fe-a1d8-45e1-83bd-6352fdeae99f",
+          "outgoing": "flow_0a60d3e6-f724-4a74-a6dd-6f980cababce"
+        },
+        "properties": {
+          "WorkflowCustomVariable": {
+            "enable_preventive_actions": false
+          }
+        },
+        "version_constraint": "~1"
+      },
+      "WriteToLogRepo": {
+        "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+        "name": "Write to log repo",
+        "flows": {
+          "incoming": "flow_7a89b7c7-238a-4ea5-9156-c2f86ff26578",
+          "outgoing": "flow_bb767632-2772-4dfb-be43-290aad09093d"
+        },
+        "properties": {
+          "_fields": [
+            "${Trigger.Detection.Name}",
+            "${Workflow.Definition.Name}",
+            "${Trigger.Detection.DataProtection.AgentID}",
+            "${Trigger.Detection.NGSIEM.HostNames}",
+            "${Trigger.Detection.EPP.Sensor.SensorID}",
+            "${Trigger.Detection.EPP.Sensor.Hostname}",
+            "${Trigger.Detection.Intercept.AgentID}",
+            "${Trigger.Detection.QUICKSCANPRO.AgentID}",
+            "${WorkflowCustomVariable.enable_preventive_actions}"
+          ],
+          "custom_json": null
+        },
+        "version_constraint": "~1"
+      },
+      "WriteToLogRepo2": {
+        "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+        "name": "Write to log repo - 2",
+        "flows": {
+          "incoming": "flow_ddcf4d5b-0b6c-49f5-bce1-f65d2a08caf2",
+          "outgoing": "flow_353bb948-0d65-49b0-a81b-c1798dd00d0a"
+        },
+        "properties": {
+          "_fields": [
+            "${Trigger.Detection.Name}",
+            "${Trigger.Detection.Product}",
+            "${Trigger.Detection.Description}",
+            "${Workflow.Definition.Name}",
+            "${Workflow.Execution.ID}"
+          ]
+        },
+        "version_constraint": "~1"
+      },
+      "WriteToLogRepo3": {
+        "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+        "name": "Write to log repo - 3",
+        "flows": {
+          "incoming": "flow_e6a72c4e-3e1b-4f64-9a58-149cdca446b7",
+          "outgoing": "flow_30b0651c-1819-4b5e-9afb-69fb0300f188"
+        },
+        "properties": {
+          "_fields": [
+            "${Trigger.Detection.Name}",
+            "${Trigger.Detection.Product}",
+            "${Trigger.Detection.Description}",
+            "${Workflow.Definition.Name}",
+            "${Workflow.Execution.ID}"
+          ]
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "flow_bb767632-2772-4dfb-be43-290aad09093d",
+        "flow_353bb948-0d65-49b0-a81b-c1798dd00d0a",
+        "flow_b013fd49-d6c4-4dc7-8b9a-1f44b1bfef6c",
+        "flow_be7cb05c-40e3-4fba-adb2-6220221b13e7",
+        "flow_61a8097e-3cfb-4904-9b7d-a8cb55f49af4",
+        "flow_35623221-8679-40f0-84b6-e334c035d2c8",
+        "flow_30b0651c-1819-4b5e-9afb-69fb0300f188",
+        "flow_e025b358-815f-45dd-be02-450713fc90b9",
+        "flow_06abb108-cf32-421f-b418-6d89de553af7",
+        "flow_9125cfd0-a2cd-4001-8755-1d5e808582a2",
+        "flow_b30c7476-6c6f-4610-9924-351714ce6f3b"
+      ]
+    },
+    "sub_models": {
+      "Loop": {
+        "model": {
+          "trigger": {
+            "id": "Loop",
+            "name": "",
+            "outgoing_flow": "FROM_trigger_TO_ContainDevice2",
+            "trigger_type": "SubModel"
+          },
+          "flows": {
+            "FROM_ContainDevice2_TO_end": {
+              "source": "ContainDevice2",
+              "target": "end",
+              "condition": {}
+            },
+            "FROM_trigger_TO_ContainDevice2": {
+              "source": "trigger",
+              "target": "ContainDevice2",
+              "condition": {}
+            }
+          },
+          "activities": {
+            "ContainDevice2": {
+              "id": "bec9fbeb4999d207937854fd56088107",
+              "name": "Contain device - 4",
+              "flows": {
+                "incoming": "FROM_trigger_TO_ContainDevice2",
+                "outgoing": "FROM_ContainDevice2_TO_end"
+              },
+              "properties": {
+                "device_id": "${DeviceQuery.Device.query.devices.#}",
+                "note": "${data['Workflow.Definition.Name']} was executed successfully and this host was contained following approval by ${data['RequestHumanInputSendEmail5.RequestHumanInput.SendEmail.result.responder']}."
+              }
+            }
+          },
+          "end": {
+            "incoming_flows": [
+              "FROM_ContainDevice2_TO_end"
+            ]
+          }
+        },
+        "multi": {
+          "array_field": "DeviceQuery.Device.query.devices",
+          "array_field_display_name": "Sensor IDs",
+          "continue_on_partial_execution": false,
+          "condition": {},
+          "max_execution_seconds": 0,
+          "max_iteration_count": 0
+        },
+        "name": "For each Sensor IDs; Concurrently",
+        "flows": {
+          "incoming": "flow_d9351832-d78b-4de1-b13a-ef8ba4b5a9c6",
+          "outgoing": "flow_514c514e-30a2-42f8-8964-6c4e84a62c59"
+        }
+      }
+    }
+  },
+  "use_cases": [
+    "Endpoint security",
+    "Network security"
+  ],
+  "vendors": [
+    "CrowdStrike"
+  ],
+  "complexity": 7,
+  "trigger_type": "Event",
+  "id": "431d3930209b43f2ba35696e9d5af949",
+  "version": "0.125.0",
+  "created_timestamp": "2025-12-18T21:53:03.030630316Z",
+  "last_modified_timestamp": "2025-12-18T21:53:01.929748516Z",
+  "activities": [
+    {
+      "id": "7b77cb5d5ff2651cc51c7c4c610d54d1",
+      "name": "Add comment to alert"
+    },
+    {
+      "id": "bec9fbeb4999d207937854fd56088107",
+      "name": "Contain device"
+    },
+    {
+      "id": "702d15788dbbffdf0b68d8e2f3599aa4",
+      "name": "Create variable"
+    },
+    {
+      "id": "d6731c10b24834e2e0f4bd9d390a29c8",
+      "name": "Request human input - Send email"
+    },
+    {
+      "id": "04c59ceb6dff9e6cd89e5f5cf13121ab",
+      "name": "Write to log repo"
+    },
+    {
+      "id": "6c6eab39063fa3b72d98c82af60deb8a",
+      "name": "Update variable"
+    },
+    {
+      "id": "68ffa99af40c84b36462daa076f535d0",
+      "name": "Device Query"
+    }
+  ],
+  "trigger": {
+    "id": "72fe3ef1aa87ca3c25a247afe8b55af7",
+    "name": "Detection"
+  }
+}

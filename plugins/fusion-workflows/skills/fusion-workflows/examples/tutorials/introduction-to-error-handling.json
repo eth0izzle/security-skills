@@ -1,0 +1,384 @@
+{
+  "name": "Introduction to error handling",
+  "description": "This playbook demonstrates how users can enable 'continue on failure' from the action execution settings in Fusion SOAR, allowing workflows to maintain continuity when an action fails. Instead of the entire workflow failing, the workflow continues to the next node based on your defined error handling configuration, enabling you to add conditional branches to handle errors and implement resilient workflows that gracefully adapt to failures rather than stopping completely.",
+  "model": {
+    "trigger": {
+      "name": "On demand",
+      "outgoing_flow": "FROM_trigger_TO_ExampleForErrorHandling",
+      "trigger_type": "On demand"
+    },
+    "flows": {
+      "FROM_ActionFailed_TO_end": {
+        "source": "ActionFailed",
+        "target": "end",
+        "condition": {}
+      },
+      "FROM_ExampleForErrorHandling_TO_data39workflow_execution_errors39_size__0": {
+        "source": "ExampleForErrorHandling",
+        "target": "data39workflow_execution_errors39_size__0",
+        "condition": {}
+      },
+      "FROM_PrintIfActionSuccessfullyReturnsData_TO_end": {
+        "source": "PrintIfActionSuccessfullyReturnsData",
+        "target": "end",
+        "condition": {}
+      },
+      "FROM_data39workflow_execution_errors39_size__0_TO_PrintIfActionSuccessfullyReturnsData": {
+        "source": "data39workflow_execution_errors39_size__0",
+        "target": "PrintIfActionSuccessfullyReturnsData",
+        "condition": {
+          "cel_expression": "data['Workflow.Execution.Errors'].size() == 0",
+          "display": [
+            "data[&#39;Workflow.Execution.Errors&#39;].size() == 0"
+          ]
+        }
+      },
+      "FROM_data39workflow_execution_errors39_size_gt_0_TO_ActionFailed": {
+        "source": "data39workflow_execution_errors39_size__0",
+        "target": "ActionFailed",
+        "condition": {
+          "cel_expression": "data['Workflow.Execution.Errors'].size() > 0",
+          "display": [
+            "data[&#39;Workflow.Execution.Errors&#39;].size() &gt; 0"
+          ]
+        }
+      },
+      "FROM_trigger_TO_ExampleForErrorHandling": {
+        "source": "trigger",
+        "target": "ExampleForErrorHandling",
+        "condition": {}
+      }
+    },
+    "gateways": {
+      "data39workflow_execution_errors39_size__0": {
+        "type": "exclusive",
+        "flows": {
+          "incoming": [
+            "FROM_ExampleForErrorHandling_TO_data39workflow_execution_errors39_size__0"
+          ],
+          "outgoing": [
+            "FROM_data39workflow_execution_errors39_size__0_TO_PrintIfActionSuccessfullyReturnsData",
+            "FROM_data39workflow_execution_errors39_size_gt_0_TO_ActionFailed"
+          ]
+        }
+      }
+    },
+    "activities": {
+      "ActionFailed": {
+        "id": "aadbf530e35fc452a032f5f8acaaac2a",
+        "name": "Action failed",
+        "flows": {
+          "incoming": "FROM_data39workflow_execution_errors39_size_gt_0_TO_ActionFailed",
+          "outgoing": "FROM_ActionFailed_TO_end"
+        },
+        "properties": {
+          "text_data": "${data['Workflow.Execution.Errors']}"
+        },
+        "version_constraint": "~1"
+      },
+      "ExampleForErrorHandling": {
+        "id": "cdf5c3e0d69f156eaaf56c1f5d3f1b66",
+        "class": "Inline.QueryEvent",
+        "name": "example for error handling",
+        "flows": {
+          "incoming": "FROM_trigger_TO_ExampleForErrorHandling",
+          "outgoing": "FROM_ExampleForErrorHandling_TO_data39workflow_execution_errors39_size__0"
+        },
+        "inline_configuration": {
+          "config": {
+            "description": "",
+            "end": "now",
+            "last_modified_by": "4a090c6f-0917-4a75-8617-7c6d514770b9",
+            "last_modified_by_user": {
+              "email": "tim.kuhlman@crowdstrike.com"
+            },
+            "repo_or_view": "search-all",
+            "search_name": "example for error handling",
+            "search_query": "#repo = \"fusion\"",
+            "search_query_args": {},
+            "start": "5m",
+            "tags": []
+          },
+          "output_schema": {
+            "$schema": "https://json-schema.org/draft-07/schema",
+            "properties": {
+              "action": {
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "title": "Action Id"
+                  },
+                  "input": {
+                    "properties": {
+                      "device_status": {
+                        "type": "string",
+                        "title": "Action Input Device status"
+                      },
+                      "group": {
+                        "type": "string",
+                        "title": "Action Input Group"
+                      },
+                      "last_seen": {
+                        "type": "string",
+                        "title": "Action Input Last seen"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "Action Name"
+                  },
+                  "node_id": {
+                    "type": "string",
+                    "title": "Action Node id"
+                  },
+                  "output": {
+                    "properties": {
+                      "devices": {
+                        "items": {},
+                        "type": "array",
+                        "title": "Action Output Devices"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "use_cases": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array",
+                    "title": "Action Use cases"
+                  },
+                  "vendor": {
+                    "type": "string",
+                    "title": "Action Vendor"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "title": "Action Version"
+                  }
+                },
+                "type": "object"
+              },
+              "cid": {
+                "type": "string",
+                "title": "Cid"
+              },
+              "customer_visible": {
+                "type": "boolean",
+                "title": "Customer visible"
+              },
+              "definition_id": {
+                "type": "string",
+                "title": "Definition id"
+              },
+              "definition_name": {
+                "type": "string",
+                "title": "Definition name"
+              },
+              "definition_version": {
+                "type": "integer",
+                "title": "Definition version"
+              },
+              "end_timestamp": {
+                "type": "string",
+                "title": "End timestamp"
+              },
+              "event_type": {
+                "type": "string",
+                "title": "Event type"
+              },
+              "execution_id": {
+                "type": "string",
+                "title": "Execution id"
+              },
+              "execution_log_subtype": {
+                "type": "string",
+                "title": "Execution log subtype"
+              },
+              "execution_log_type": {
+                "type": "string",
+                "title": "Execution log type"
+              },
+              "execution_log_version": {
+                "type": "string",
+                "title": "Execution log version"
+              },
+              "parent_execution_id": {
+                "type": "string",
+                "title": "Parent execution id"
+              },
+              "root_execution_id": {
+                "type": "string",
+                "title": "Root execution id"
+              },
+              "start_timestamp": {
+                "type": "string",
+                "title": "Start timestamp"
+              },
+              "status": {
+                "type": "string",
+                "title": "Status"
+              },
+              "trigger": {
+                "properties": {
+                  "data": {
+                    "properties": {
+                      "Trigger.CID": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger CID"
+                      },
+                      "Trigger.Category": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger Category"
+                      },
+                      "Trigger.ID": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger ID"
+                      },
+                      "Trigger.Name": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger Name"
+                      },
+                      "Trigger.ObservedTime": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger ObservedTime"
+                      },
+                      "Trigger.ObservedTime.Date": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger ObservedTime Date"
+                      },
+                      "Trigger.ObservedTime.DayOfWeek": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger ObservedTime DayOfWeek"
+                      },
+                      "Trigger.ObservedTime.Hour": {
+                        "type": "integer",
+                        "title": "Trigger Data Trigger ObservedTime Hour"
+                      },
+                      "Trigger.ObservedTime.Minute": {
+                        "type": "integer",
+                        "title": "Trigger Data Trigger ObservedTime Minute"
+                      },
+                      "Trigger.ObservedTime.Timezone": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger ObservedTime Timezone"
+                      },
+                      "Trigger.SourceEventID": {
+                        "type": "null",
+                        "title": "Trigger Data Trigger SourceEventID"
+                      },
+                      "Trigger.SourceEventURL": {
+                        "type": "string",
+                        "title": "Trigger Data Trigger SourceEventURL"
+                      },
+                      "Trigger.SpecVersion": {
+                        "type": "null",
+                        "title": "Trigger Data Trigger SpecVersion"
+                      },
+                      "Workflow.Definition.Description": {
+                        "type": "string",
+                        "title": "Trigger Data Workflow Definition Description"
+                      },
+                      "Workflow.Definition.Name": {
+                        "type": "string",
+                        "title": "Trigger Data Workflow Definition Name"
+                      },
+                      "Workflow.Execution.Errors": {
+                        "type": "null",
+                        "title": "Trigger Data Workflow Execution Errors"
+                      },
+                      "Workflow.Execution.ID": {
+                        "type": "string",
+                        "title": "Trigger Data Workflow Execution ID"
+                      },
+                      "Workflow.Execution.Time": {
+                        "type": "string",
+                        "title": "Trigger Data Workflow Execution Time"
+                      },
+                      "Workflow.Execution.Time.Date": {
+                        "type": "string",
+                        "title": "Trigger Data Workflow Execution Time Date"
+                      },
+                      "Workflow.Execution.Time.DayOfWeek": {
+                        "type": "string",
+                        "title": "Trigger Data Workflow Execution Time DayOfWeek"
+                      },
+                      "Workflow.Execution.Time.Hour": {
+                        "type": "integer",
+                        "title": "Trigger Data Workflow Execution Time Hour"
+                      },
+                      "Workflow.Execution.Time.Minute": {
+                        "type": "integer",
+                        "title": "Trigger Data Workflow Execution Time Minute"
+                      },
+                      "Workflow.Execution.Time.Timezone": {
+                        "type": "string",
+                        "title": "Trigger Data Workflow Execution Time Timezone"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object",
+            "description": "Generated response schema"
+          }
+        },
+        "properties": {
+          "output_files_only": false,
+          "workflow_csv_header_fields": [],
+          "workflow_export_event_query_results_to_csv": false
+        },
+        "version_constraint": "~1"
+      },
+      "PrintIfActionSuccessfullyReturnsData": {
+        "id": "aadbf530e35fc452a032f5f8acaaac2a",
+        "name": "Print if action successfully returns data",
+        "flows": {
+          "incoming": "FROM_data39workflow_execution_errors39_size__0_TO_PrintIfActionSuccessfullyReturnsData",
+          "outgoing": "FROM_PrintIfActionSuccessfullyReturnsData_TO_end"
+        },
+        "properties": {
+          "text_data": "${data['ExampleForErrorHandling.results'][0]}"
+        },
+        "version_constraint": "~1"
+      }
+    },
+    "end": {
+      "incoming_flows": [
+        "FROM_PrintIfActionSuccessfullyReturnsData_TO_end",
+        "FROM_ActionFailed_TO_end"
+      ]
+    }
+  },
+  "use_cases": [
+    "Utilities"
+  ],
+  "vendors": [
+    "CrowdStrike"
+  ],
+  "complexity": 2,
+  "trigger_type": "On demand",
+  "id": "1265050ccd004f179d3b8278d4c86c18",
+  "version": "0.123.2",
+  "created_timestamp": "2025-12-12T00:13:11.431321682Z",
+  "last_modified_timestamp": "2025-12-12T00:13:11.412124272Z",
+  "activities": [
+    {
+      "id": "cdf5c3e0d69f156eaaf56c1f5d3f1b66",
+      "name": "Workflow-specific event query"
+    },
+    {
+      "id": "aadbf530e35fc452a032f5f8acaaac2a",
+      "name": "Print data"
+    }
+  ],
+  "trigger": {
+    "id": "",
+    "name": "On demand"
+  }
+}

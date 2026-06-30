@@ -248,6 +248,7 @@ a YAML file, STOP. You have skipped a required step. Go back to Step 1b.**
 - Print data: `aadbf530e35fc452a032f5f8acaaac2a`
 
 > **References**:
+> - `references/json-structure.md` — the authoritative JSON schema the Fusion API uses (BPMN graph model, `cs.*` CEL extensions, gateways, submodels, complete examples)
 > - `references/yaml-schema.md` — every YAML field and nesting level
 > - `references/cel-expressions.md` — CEL syntax, functions, YAML quoting gotchas
 > - `references/best-practices.md` — operational guidance
@@ -376,6 +377,7 @@ All scripts are in the `scripts/` directory. Run with `python scripts/<name>.py`
 
 | Document | Contents | When to read |
 |----------|----------|-------------|
+| `references/json-structure.md` | Authoritative BPMN-based JSON schema the API uses internally | Understanding the underlying workflow model, advanced patterns (gateways, submodels, parallel flows) |
 | `references/yaml-schema.md` | Every YAML field, nesting, data references | Authoring any workflow |
 | `references/cel-expressions.md` | CEL operators, functions, YAML quoting | Adding conditions or computed values |
 | `references/trigger-types.md` | All trigger types with YAML examples | Choosing how workflow starts |

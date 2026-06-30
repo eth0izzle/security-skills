@@ -146,21 +146,39 @@ display:
 
 ## CEL vs FQL expressions in conditions
 
-Fusion workflows support **two** condition syntaxes — don't confuse them:
+Fusion workflows support two condition syntaxes:
 
 | YAML key | Language | Use case |
 |----------|----------|----------|
 | `cel_expression` | CEL | Data comparisons, type checks, string matching |
 | `expression` | FQL-style | Field membership checks (e.g., group inclusion) |
 
-**FQL-style example** (from PHI-010):
+Prefer `cel_expression` (CEL) for new workflows. FQL-style `expression` is legacy; keep it only when reading older exported workflows.
+
+**FQL-style example** (legacy):
 ```yaml
 expression: GetUserIdentityContext.Groups:!['SkipCrowdStrikeWorkflows']
 ```
 This checks that the Groups array does NOT contain "SkipCrowdStrikeWorkflows".
 
-**Important**: Only `expression` (FQL-style) supports the `else` branch.
-With `cel_expression`, model mutually exclusive conditions as parallel branches.
+**`else` and `else_if` with CEL**: CEL conditions support both `else_if` (chain to the next condition node) and `else` (default fallthrough). Build if / else-if / else like this:
+
+```yaml
+conditions:
+    is_bar:                          # IF
+        cel_expression: data['foo'] == "bar"
+        next:
+            - PrintBar
+        else_if: is_tea
+    is_tea:                          # ELSE IF
+        cel_expression: data['foo'] == "tea"
+        next:
+            - PrintTea
+        else:                        # ELSE (default fallthrough)
+            - PrintDefault
+```
+
+Under the hood this is an exclusive gateway in the workflow JSON, where the `else` branch is the gateway's `default` flow. The YAML is a conversion of that JSON; the backend processes the JSON.
 
 ---
 

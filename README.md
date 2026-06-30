@@ -20,11 +20,13 @@ Install individual skills to automate specific platforms, or combine several for
 ### Install via Plugin Marketplace
 
 ```bash
-/plugin marketplace add https://github.com/eth0izzle/security-skills.git
-/plugin install SKILL-NAME@security-skills
+/plugin marketplace add https://github.com/eth0izzle/security-skills
+/plugin install fusion-workflows@security-skills
 ```
 
-Replacing `SKILL-NAME` with the desired skill name you want to install.
+This installs the `fusion-workflows` plugin, which provides two skills:
+- `fusion-workflows` — create, validate, import, execute, and export Fusion SOAR workflows
+- `lookup-files` — manage Falcon Next-Gen SIEM lookup files
 
 ### Manual Setup
 

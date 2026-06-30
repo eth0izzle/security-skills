@@ -94,7 +94,12 @@ def execute_workflow(definition_id, params, depth=1):
             return False, None, msg
 
         resources = body.get("resources", [])
-        exec_id = resources[0].get("id") if resources else None
+        # The execute endpoint returns resources as a list of bare execution-ID
+        # strings, not objects. Handle both shapes defensively.
+        exec_id = None
+        if resources:
+            first = resources[0]
+            exec_id = first if isinstance(first, str) else first.get("id")
         return True, exec_id, body
     except (ConnectionError, RuntimeError, OSError) as exc:
         return False, None, str(exc)
@@ -107,6 +112,11 @@ def poll_results(execution_id, timeout=120, interval=5):
     """
     client = get_client()
     start = time.time()
+    # Terminal statuses returned by the execution-results API (see
+    # references/best-practices.md). The API returns capitalized values;
+    # match case-insensitively to be safe. "ActionRequired" is terminal for
+    # polling purposes — it waits on human input and won't progress on its own.
+    terminal = {"succeeded", "failed", "canceled", "nonrecoverable", "actionrequired"}
     print(f"\n  Polling for results (timeout: {timeout}s)...")
     while time.time() - start < timeout:
         try:
@@ -116,7 +126,7 @@ def poll_results(execution_id, timeout=120, interval=5):
             if resources:
                 result = resources[0]
                 status = result.get("status", "")
-                if status in ("completed", "failed", "error"):
+                if status.lower() in terminal:
                     return result
                 print(f"    Status: {status} ({int(time.time() - start)}s elapsed)")
         except (ConnectionError, RuntimeError, OSError) as exc:

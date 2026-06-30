@@ -65,7 +65,27 @@ trigger:
 
 Available fields: `${Trigger.Category.Investigatable.Product.EPP.Sensor.SensorID}`,
 `${Trigger.Category.Investigatable.Product.EPP.Sensor.Hostname}`,
-`${Trigger.Category.Investigatable.Product.EPP.URL}`
+`${Trigger.Category.Investigatable.Product.EPP.URL}`,
+`${Trigger.Category.Investigatable.InvestigatableID}`,
+`${Trigger.Category.Investigatable.Severity}`
+
+**Severity is an integer (1-5), not a string.** Use numeric comparison in CEL conditions:
+
+| Value | Display Name |
+|-------|-------------|
+| 1 | Informational |
+| 2 | Low |
+| 3 | Medium |
+| 4 | High |
+| 5 | Critical |
+
+```yaml
+# Correct: numeric comparison
+cel_expression: "data['Trigger.Category.Investigatable.Severity'] >= 4"
+
+# Wrong: string comparison (field is numeric, not a string)
+cel_expression: "data['Trigger.Category.Investigatable.Severity'] == 'Critical'"
+```
 
 ### Incident
 
