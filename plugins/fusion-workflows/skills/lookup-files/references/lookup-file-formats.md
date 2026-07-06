@@ -60,13 +60,13 @@ When uploading or querying lookup files, you specify a search domain:
 
 | Domain | Description |
 |--------|-------------|
-| `falcon` | Files available to CQL queries in Falcon Next-Gen SIEM (default for uploads) |
+| `falcon` | Files scoped to the Falcon Next-Gen SIEM view |
 | `third-party` | Files from third-party integrations |
 | `parsers-repository` | Files used by log parsers |
 | `all` | Search across all domains (read-only operations) |
 | `dashboards` | Dashboard-specific files (read-only) |
 
-**Recommendation:** Use `falcon` for files intended for CQL `match()` queries.
+**Recommendation:** Upload without a search domain (the default) so `match()` can find the file. A view-scoped file is hidden from `match()`.
 
 ## Naming Conventions
 

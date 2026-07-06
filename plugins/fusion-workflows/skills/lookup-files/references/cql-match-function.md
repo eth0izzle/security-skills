@@ -83,6 +83,6 @@ match(file="lookup.csv", column=key, field=event_field, include=col1, include=co
 |-------|-----|
 | No matches returned | Column names are case-sensitive — verify with `get_lookup.py` |
 | Missing include columns | Each `include` must match a header in the CSV exactly |
-| Lookup file not found | Ensure the file was uploaded to the `falcon` domain |
+| Lookup file not found | Upload with `create_lookup.py` (no search domain). A file scoped to a search view (`search_domain`) is invisible to `match()`. |
 | Partial matches not working | `match()` does exact matching only — normalize data before upload |
 | Performance degradation | Large lookup files (>100K rows) may slow queries — consider filtering |

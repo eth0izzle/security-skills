@@ -52,8 +52,9 @@ def main():
         help="Lookup file name to delete"
     )
     parser.add_argument(
-        "--domain", "-d", choices=DOMAIN_CHOICES, default="falcon",
-        help="Search domain (default: falcon)"
+        "--domain", "-d", choices=DOMAIN_CHOICES, default="all",
+        help="Search domain to delete from (default: all, which finds files in "
+             "the global namespace where create_lookup.py uploads them)"
     )
     parser.add_argument(
         "--confirm", action="store_true",
