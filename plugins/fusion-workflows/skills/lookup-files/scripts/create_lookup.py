@@ -4,8 +4,11 @@ Upload a new CrowdStrike Falcon Next-Gen SIEM lookup file.
 Usage:
     python create_lookup.py --file data.csv                         # Upload (filename from path)
     python create_lookup.py --file data.csv --name "blocklist.csv"  # Custom remote name
-    python create_lookup.py --file data.csv --domain falcon         # Specific domain
     python create_lookup.py --file data.csv --json                  # Machine-readable
+
+The file is uploaded to the global namespace so CQL match() can resolve it by
+filename in a search. A view-scoped ("search_domain") upload would make the file
+invisible to match(), which defeats the purpose of a lookup file.
 """
 
 import argparse
@@ -19,7 +22,6 @@ from cs_auth import get_client
 # Fix Windows console encoding
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-DOMAIN_CHOICES = ["falcon", "third-party", "parsers-repository"]
 
 
 def validate_file(file_path):
@@ -34,20 +36,19 @@ def validate_file(file_path):
     return True, "OK"
 
 
-def create_lookup(file_path, filename=None, search_domain="falcon"):
+def create_lookup(file_path, filename=None):
     """
-    Upload a new lookup file. Returns (success, message).
+    Upload a new lookup file to the global namespace. Returns (success, message).
+
+    No search_domain is sent, so the file is resolvable by CQL match() in a
+    search. Scoping to a view would hide it from match().
     """
     if filename is None:
         filename = os.path.basename(file_path)
 
     client = get_client()
     with open(file_path, "rb") as f:
-        resp = client.create_lookup_file(
-            filename=filename,
-            file=f.read(),
-            search_domain=search_domain,
-        )
+        resp = client.create_lookup_file(filename=filename, file=f.read())
 
     body = resp["body"] if isinstance(resp, dict) else resp
     if isinstance(body, dict):
@@ -77,10 +78,6 @@ def main():
         help="Remote filename (defaults to local filename)"
     )
     parser.add_argument(
-        "--domain", "-d", choices=DOMAIN_CHOICES, default="falcon",
-        help="Search domain (default: falcon)"
-    )
-    parser.add_argument(
         "--json", action="store_true",
         help="Machine-readable JSON output"
     )
@@ -95,20 +92,18 @@ def main():
         sys.exit(1)
 
     remote_name = args.name or os.path.basename(args.file)
-    success, message = create_lookup(args.file, filename=remote_name, search_domain=args.domain)
+    success, message = create_lookup(args.file, filename=remote_name)
 
     if args.json:
         print(json.dumps({
             "success": success,
             "filename": remote_name,
-            "domain": args.domain,
             "message": message,
         }, indent=2))
     else:
         if success:
             print(f"\n  {message}")
             print(f"    Filename : {remote_name}")
-            print(f"    Domain   : {args.domain}")
             print("\n  Note: Rate limit is 5 file uploads per 30 seconds.\n")
         else:
             print(f"  FAILED: {message}", file=sys.stderr)

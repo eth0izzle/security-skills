@@ -3,8 +3,11 @@ Replace the content of an existing CrowdStrike Falcon Next-Gen SIEM lookup file.
 
 Usage:
     python update_lookup.py --name "blocklist.csv" --file updated-data.csv
-    python update_lookup.py --name "blocklist.csv" --file updated-data.csv --domain falcon
     python update_lookup.py --name "blocklist.csv" --file updated-data.csv --json
+
+The file is updated in the global namespace so CQL match() can resolve it, mirroring
+create_lookup.py. See that script's note on why a view-scoped ("search_domain") upload
+would hide the file from match().
 """
 
 import argparse
@@ -12,13 +15,13 @@ import json
 import sys
 import os
 
+# Import shared auth from this scripts directory, anchored to this file's own
+# location (not the cwd) so the import works regardless of where it is launched.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cs_auth import get_client
 
 # Fix Windows console encoding
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-
-DOMAIN_CHOICES = ["falcon", "third-party", "parsers-repository"]
 
 
 def validate_file(file_path):
@@ -33,17 +36,16 @@ def validate_file(file_path):
     return True, "OK"
 
 
-def update_lookup(file_path, filename, search_domain="falcon"):
+def update_lookup(file_path, filename):
     """
-    Replace lookup file content. Returns (success, message).
+    Replace lookup file content in the global namespace. Returns (success, message).
+
+    No search_domain is sent, matching create_lookup.py, so the file stays
+    resolvable by CQL match().
     """
     client = get_client()
     with open(file_path, "rb") as f:
-        resp = client.update_lookup_file(
-            filename=filename,
-            file=f.read(),
-            search_domain=search_domain,
-        )
+        resp = client.update_lookup_file(filename=filename, file=f.read())
 
     body = resp["body"] if isinstance(resp, dict) else resp
     if isinstance(body, dict):
@@ -73,10 +75,6 @@ def main():
         help="Local file with new content"
     )
     parser.add_argument(
-        "--domain", "-d", choices=DOMAIN_CHOICES, default="falcon",
-        help="Search domain (default: falcon)"
-    )
-    parser.add_argument(
         "--json", action="store_true",
         help="Machine-readable JSON output"
     )
@@ -90,20 +88,18 @@ def main():
             print(f"  ERROR: {msg}", file=sys.stderr)
         sys.exit(1)
 
-    success, message = update_lookup(args.file, filename=args.name, search_domain=args.domain)
+    success, message = update_lookup(args.file, filename=args.name)
 
     if args.json:
         print(json.dumps({
             "success": success,
             "filename": args.name,
-            "domain": args.domain,
             "message": message,
         }, indent=2))
     else:
         if success:
             print(f"\n  {message}")
-            print(f"    Filename : {args.name}")
-            print(f"    Domain   : {args.domain}\n")
+            print(f"    Filename : {args.name}\n")
         else:
             print(f"  FAILED: {message}", file=sys.stderr)
 
