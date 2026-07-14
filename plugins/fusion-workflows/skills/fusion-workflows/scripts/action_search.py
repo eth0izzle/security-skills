@@ -39,6 +39,25 @@ _CACHE_TTL = 3600  # 1 hour
 # Combined with `+`:  vendor:'CrowdStrike'+name:'email'
 
 
+def _usable_body(resp):
+    """Return the response body if it carries usable resources, else None.
+
+    The search_activities API returns a top-level 404 when the result set
+    includes an action whose backing artifact is missing (an orphaned catalog
+    entry), even though it still returns every action it could resolve. Keying
+    success off the aggregate status_code therefore throws away valid data and
+    makes common searches (email, query event, LLM) look like connection
+    failures. Treat any response that carries resources as usable, regardless of
+    the aggregate status; only a non-200 with no resources is a real failure.
+    """
+    body = resp.get("body") or {}
+    if resp.get("status_code") == 200:
+        return body
+    if body.get("resources"):
+        return body  # partial failure (e.g. orphaned artifact) — data still usable
+    return None
+
+
 def _fql_search(query, vendor_filter=None, limit=200):
     """Search actions using server-side FQL filter.  Returns (results, total).
 
@@ -58,9 +77,9 @@ def _fql_search(query, vendor_filter=None, limit=200):
     while True:
         try:
             resp = client.search_activities(filter=fql, limit=limit, offset=offset)
-            if resp["status_code"] != 200:
+            body = _usable_body(resp)
+            if body is None:
                 return None
-            body = resp["body"]
         except (ConnectionError, RuntimeError, OSError):
             return None  # FQL not supported / transient error — caller retries
         resources = body.get("resources", [])
@@ -120,9 +139,10 @@ def _fetch_page_with_retry(client, offset, max_retries=3, progress=False):
     for attempt in range(1, max_retries + 1):
         try:
             resp = client.search_activities(limit=200, offset=offset)
-            if resp["status_code"] != 200:
-                raise RuntimeError(f"API returned {resp['status_code']}")
-            return resp["body"]
+            body = _usable_body(resp)
+            if body is None:
+                raise RuntimeError(f"API returned {resp['status_code']} with no resources")
+            return body
         except (ConnectionError, RuntimeError, OSError):
             if attempt < max_retries:
                 if progress:
@@ -264,7 +284,7 @@ def list_actions(limit=25, offset=0, vendor_filter=None):
         return page, len(all_for_vendor)
     client = get_client()
     resp = client.search_activities(limit=limit, offset=offset)
-    body = resp["body"]
+    body = _usable_body(resp) or {}
     resources = body.get("resources", [])
     total = body.get("meta", {}).get("pagination", {}).get("total", 0)
     return resources, total
@@ -274,7 +294,7 @@ def get_action_details(action_id):
     """Get full details for a specific action by ID."""
     client = get_client()
     resp = client.search_activities(filter=f"id:'{action_id}'")
-    body = resp["body"]
+    body = _usable_body(resp) or {}
     resources = body.get("resources", [])
     return resources[0] if resources else None
 
