@@ -118,3 +118,38 @@ class TestFormatVendorsTable:
         assert "Okta" in output
         assert "60 actions" in output
         assert "2 vendors" in output
+
+
+class TestUsableBody:
+    """Test the partial-404 tolerance in _usable_body.
+
+    The search_activities API returns a top-level 404 when a result set
+    includes an action with an orphaned catalog artifact, while still returning
+    every action it could resolve. _usable_body must keep those resources rather
+    than discard them over the aggregate status.
+    """
+
+    def test_status_200_returns_body(self):
+        resp = {"status_code": 200, "body": {"resources": [{"id": "1"}]}}
+        assert action_search._usable_body(resp) == {"resources": [{"id": "1"}]}
+
+    def test_partial_404_with_resources_returns_body(self):
+        # 404 aggregate but resources present (orphaned-artifact case).
+        body = {
+            "resources": [{"id": "1"}, {"id": "2"}],
+            "errors": [{"code": 404, "message": "artifact not found", "id": "orphan"}],
+        }
+        resp = {"status_code": 404, "body": body}
+        assert action_search._usable_body(resp) == body
+
+    def test_404_without_resources_returns_none(self):
+        resp = {"status_code": 404, "body": {"resources": [], "errors": [{"code": 404}]}}
+        assert action_search._usable_body(resp) is None
+
+    def test_500_without_resources_returns_none(self):
+        resp = {"status_code": 500, "body": {"resources": []}}
+        assert action_search._usable_body(resp) is None
+
+    def test_missing_body_returns_none(self):
+        resp = {"status_code": 404, "body": None}
+        assert action_search._usable_body(resp) is None
